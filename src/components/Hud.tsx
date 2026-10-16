@@ -108,7 +108,7 @@ export const EyeBox = forwardRef<HTMLCanvasElement>(function EyeBox(_, ref) {
   return (
     <div id="eyebox">
       <div id="eyeTitle">{info.sensor ? 'Camera view' : 'Eyepiece view'}</div>
-      <canvas ref={ref} width={392} height={392} />
+      <canvas ref={ref} width={392} height={392} title="Drag to steer the telescope" />
       <div id="eyeCaption">
         {info.field
           ? `${info.field[0].toFixed(2)}° × ${info.field[1].toFixed(2)}° field · ${info.focalLength.toFixed(0)} mm f/${f.toFixed(1)}`

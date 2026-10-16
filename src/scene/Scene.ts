@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { D2R, R2D, OBLIQUITY, gmst, sunEcliptic, moonEcliptic, eclipticToEquatorial, horizontal, sphToVec, wrapPi, type Horizontal } from '../astro.ts';
+import { D2R, R2D, OBLIQUITY, gmst, sunEcliptic, moonEcliptic, eclipticToEquatorial, horizontal, sphToVec, vecToSph, wrapPi, type Horizontal } from '../astro.ts';
 import { makeTelescope, type Telescope } from '../optics.ts';
 import { DATA } from '../data.ts';
 import { COLORS, LM, METRE, MOON_ORBIT_R, MOON_R, ORBIT_R, SHELL_R, SKY_R, STOPS, SUN_R, TARGETS, type StopId } from '../constants.ts';
@@ -630,13 +630,38 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   // ---------- camera (eyepiece / sensor) view ----------
   const ev = eyeCanvas.getContext('2d')!;
   const qInv = new THREE.Quaternion();
+  const eyeScale = () => { // canvas pixels per unit of tan(angle) off the axis, as drawEyeView plots
+    const fov = scope.field ?? [scope.trueField!, scope.trueField!];
+    return (Math.min(eyeCanvas.width, eyeCanvas.height) * 0.46) / Math.tan((Math.max(fov[0], fov[1]) / 2) * D2R);
+  };
+  // Dragging the camera view steers the telescope, like pushing a finder: the picture follows your pointer, and
+  // where the tube ends up pointing becomes a custom target (tracked if tracking is on).
+  let eyeDrag: [number, number] | null = null;
+  const onEyeDown = (e: PointerEvent) => { eyeCanvas.setPointerCapture(e.pointerId); eyeDrag = [e.clientX, e.clientY]; wake(); };
+  const onEyeUp = () => { eyeDrag = null; };
+  const onEyeMove = (e: PointerEvent) => {
+    if (!eyeDrag) return;
+    const k = eyeScale() * (eyeCanvas.clientWidth / eyeCanvas.width), dx = e.clientX - eyeDrag[0], dy = e.clientY - eyeDrag[1];
+    eyeDrag = [e.clientX, e.clientY];
+    model.group.getWorldQuaternion(qTmp);
+    // Start from where the tube points, or from the target it is already slewing to.
+    const dir = (slewing ? sky.targetDirW.clone() : V(0, 0, 1).applyQuaternion(qTmp)).add(V(-dx / k, -dy / k, 0).applyQuaternion(qTmp));
+    dir.normalize().applyQuaternion(eqToWorld.clone().invert());
+    const { lon, lat } = vecToSph([dir.x, dir.y, dir.z]);
+    settings.set({ target: TARGETS.findIndex((t) => t[0] === 'Custom'), customRa: lon, customDec: lat });
+    wake();
+  };
+  eyeCanvas.addEventListener('pointerdown', onEyeDown);
+  eyeCanvas.addEventListener('pointermove', onEyeMove);
+  eyeCanvas.addEventListener('pointerup', onEyeUp);
+  eyeCanvas.addEventListener('pointercancel', onEyeUp);
   function drawEyeView(daylight: number) {
     const Wd = eyeCanvas.width, Hd = eyeCanvas.height, cx = Wd / 2, cy = Hd / 2;
     ev.clearRect(0, 0, Wd, Hd);
     model.group.getWorldQuaternion(qInv).invert();
     // A camera sensor is a portrait rectangle; an eyepiece shows a circle.
     const fov = scope.field ?? [scope.trueField!, scope.trueField!];
-    const half = (Math.max(fov[0], fov[1]) / 2) * D2R, R = Math.min(Wd, Hd) * 0.46, k = R / Math.tan(half);
+    const half = (Math.max(fov[0], fov[1]) / 2) * D2R, R = Math.min(Wd, Hd) * 0.46, k = eyeScale();
     const tw = scope.sensor ? Math.tan((fov[0] / 2) * D2R) * k : R, th = scope.sensor ? Math.tan((fov[1] / 2) * D2R) * k : R;
     const outline = () => { ev.beginPath(); if (scope.sensor) ev.rect(cx - tw, cy - th, tw * 2, th * 2); else ev.arc(cx, cy, R, 0, Math.PI * 2); };
     ev.save();
@@ -914,6 +939,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointercancel', onUp); canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('wheel', onWheel); canvas.removeEventListener('keydown', onKey);
+      eyeCanvas.removeEventListener('pointerdown', onEyeDown); eyeCanvas.removeEventListener('pointermove', onEyeMove);
+      eyeCanvas.removeEventListener('pointerup', onEyeUp); eyeCanvas.removeEventListener('pointercancel', onEyeUp);
       labelLayer.replaceChildren();
       renderer.dispose();
     },
