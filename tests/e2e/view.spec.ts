@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { METRE } from '../../src/constants.ts';
 import { angle, last, ladder, open, pause, settle, since } from './helpers.ts';
 
 test.describe('the 3D view', () => {
@@ -63,6 +64,52 @@ test.describe('the 3D view', () => {
     await page.mouse.up();
     for (const p of seen) expect(Math.hypot(p[0] - start[0], p[1] - start[1])).toBeLessThan(3);
   });
+
+  // Dragging up once stopped where the camera met the ground, short of the zenith (by 43 degrees for a low
+  // target at Your site). Now the camera comes in towards the telescope along the ground instead.
+  for (const [target, link] of [['a high target', 'ra=284.505&dec=46.836'], ['a low target', 'ra=325&dec=-20']]) {
+    for (const view of ['Your site', 'Telescope']) {
+      test(`dragging up at ${view} shows the zenith over ${target}, and dragging back undoes it`, async ({ page }) => {
+        await open(page, `#lesson=21&view=site&speed=600&target=Custom&${link}&layers=ecl,hor,con,names,labels`);
+        await pause(page);
+        await ladder(page, view);
+        const settled = await settle(page), start = settled.scope!;
+        type Frame = typeof settled;
+        const dot = (a: number[], b: number[]) => a.reduce((s, v, i) => s + v * b[i], 0);
+        const topEdge = (f: Frame) => (Math.asin(dot(f.fwd, f.up)) * 180) / Math.PI + f.fov / 2;
+        const height = (f: Frame) => dot(f.pos.map((p, i) => p - settled.pos[i]), settled.up) / METRE; // metres
+        const box = (await page.locator('#view').boundingBox())!;
+        const [x, y] = [box.x + box.width * 0.6, box.y + box.height * 0.9];
+        const frames: Frame[] = [];
+        const dragTo = async (dy: number) => { await page.mouse.move(x, y - dy); await page.waitForTimeout(40); frames.push(await last(page)); };
+        // Up in small steps until the zenith shows, so the drag back retraces it exactly.
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        let dy = 0;
+        while (dy < 600 && !(frames.length && topEdge(frames.at(-1)!) >= 90)) await dragTo((dy += 5));
+        await page.mouse.up();
+        const top = frames.at(-1)!, up = frames.splice(0);
+        await page.waitForTimeout(1500);
+        const released = await last(page);
+        await page.mouse.down();
+        while (dy > 0) await dragTo((dy = Math.max(0, dy - 20)));
+        await page.mouse.up();
+        if (target === 'a low target') expect(top.fov).toBeLessThan(51); // the narrowest view, the hardest case
+        expect(topEdge(top)).toBeGreaterThanOrEqual(90);
+        for (const f of [...up, released, ...frames]) {
+          expect(Math.hypot(f.scope![0] - start[0], f.scope![1] - start[1])).toBeLessThan(3);
+          expect(Math.abs(f.fov - settled.fov)).toBeLessThan(0.1);
+        }
+        // Once down at the ground the camera only moves along it, never lower.
+        expect(height(top) - Math.min(...up.map(height))).toBeLessThan(0.002);
+        expect(angle(top.fwd, released.fwd)).toBeLessThan(0.5); // no snapping back after letting go
+        const back = [released, ...frames];
+        expect(Math.max(...back.slice(1).map((f, i) => angle(back[i].fwd, f.fwd)))).toBeLessThan(8); // no jumps
+        expect(angle(frames.at(-1)!.fwd, settled.fwd)).toBeLessThan(0.5);
+        expect(Math.hypot(...frames.at(-1)!.pos.map((p, i) => p - settled.pos[i])) / METRE).toBeLessThan(0.02);
+      });
+    }
+  }
 
   // The framing rules used to keep easing the view back to their goal whenever you weren't zooming.
   test('a view dragged inside the tube stays where it was left', async ({ page }) => {

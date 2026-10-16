@@ -501,19 +501,27 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const tGround = clamp(1 - 0.8 * d * landing(L), 0, 1);
     // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
     // to show its target star above it. Dragging sideways turns the sky behind it; dragging up and down orbits
-    // over the telescope, down to just above the ground. Arriving, the camera is brought no higher than keeps
-    // the ground in the bottom 20%, but like the other framing rules that never pulls back a drag.
+    // over the telescope, down to just above the ground, then in along the ground towards the telescope until
+    // the zenith shows. Arriving, the camera is brought no higher than keeps the ground in the bottom 20%, but
+    // like the other framing rules that never pulls back a drag.
     const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
+    let dist = d;
     if (kFrame > 0) {
-      const t = Math.tan((groundFov * D2R) / 2), hi = Math.atan(0.5 * t) - Math.atan(0.55 * t);
-      const lo = Math.asin(clamp((0.1 - mount.anchorHeight) / (d / METRE), -1, 1));
+      const t = Math.tan((groundFov * D2R) / 2), lift = Math.atan(0.5 * t), hi = lift - Math.atan(0.55 * t);
+      const rise = (mount.anchorHeight - 0.1) * METRE; // from the camera's lowest point up to the telescope
+      const lo = -Math.asin(clamp(rise / d, -1, 1));
+      // Looking up this far from the ground puts the zenith (and 2 degrees more) at the top edge.
+      const zenith = lift + (groundFov / 2 - 92) * D2R;
       if (cam.pitch > hi) cam.pitch += (Math.max(lo, hi) - cam.pitch) * kFrame * (anim ? 1 : ease);
-      cam.pitch += (Math.max(cam.pitch, lo) - cam.pitch) * kFrame;
+      if (cam.pitch < lo) cam.pitch += (lo - cam.pitch) * kFrame * ease; // a zoom or fly-to backs out along the ground
+      cam.pitch += (Math.max(cam.pitch, Math.min(lo, zenith)) - cam.pitch) * kFrame;
+      // Above the clearance this is longer than d, so only a drag past it brings the camera in.
+      if (cam.pitch < 0) dist = lerp(d, Math.min(d, rise / Math.sin(-cam.pitch)), kFrame);
     }
     const target = anchor.optics.clone().lerp(anchor.focus, tFocus).lerp(anchor.site, fSite);
     target.copy(anchor.earth.clone().lerp(target, tGround)).lerp(V(), tSun);
     frameQ(L, qTmp);
-    camera.position.copy(target).addScaledVector(dirOf(cam.yaw, cam.pitch).applyQuaternion(qTmp), d);
+    camera.position.copy(target).addScaledVector(dirOf(cam.yaw, cam.pitch).applyQuaternion(qTmp), dist);
     // Last resort: never below the ground.
     const fromEarth = camera.position.clone().sub(anchor.earth);
     const minR = 1 + (w.opt > 0.5 ? -Infinity : 0.12 * METRE);
