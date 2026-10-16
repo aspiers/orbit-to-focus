@@ -37,6 +37,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   // and out so neither arriving nor leaving jolts, and is held off near the ground so the climb out is the
   // ordinary descent in reverse.
   let freeGoal = false, fr = 0;
+  // The slice opens with Earth's axis up the screen; once you drag, the roll is yours (poleUp fades out).
+  let poleUp = 0, rollFree = false;
   const pts = new Map<number, [number, number]>(); // pointers currently down on the canvas
   // Render at full rate only while something is moving: input, a fly-to, a slew, and the eases that follow.
   let activeUntil = 0;
@@ -359,6 +361,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const local = east.applyQuaternion(qs.slerp(qWorld, fWorldAt(L)).invert());
     goTo('earth');
     freeGoal = true;
+    rollFree = false;
     const a = anim!;
     a.to = { L, yaw: Math.atan2(local.x, local.z), pitch: Math.asin(clamp(local.y, -1, 1)) };
     // From the ground: rise straight up first, and only swing round to the side once the whole Earth is in view.
@@ -382,6 +385,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const pitchCeiling = (L: number) => (L > LM + 1.8 && L < LM + 3.0 ? (4 + 81 * landing(L)) * D2R : Infinity);
   const frameQ = (L: number, out: THREE.Quaternion) => out.copy(qOpt).slerp(qSite, fSiteAt(L)).slerp(qWorld, fWorldAt(L));
   const dirOf = (yaw: number, pitch: number) => V(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw));
+  // The camera's 'up' for an orbit at (yaw, pitch): which way it moves as pitch grows. It stays well defined over
+  // the poles, so the view can tumble right over the top without flipping.
+  const upOf = (yaw: number, pitch: number) => V(-Math.sin(pitch) * Math.sin(yaw), Math.cos(pitch), -Math.sin(pitch) * Math.cos(yaw));
 
   function weights(s: Settings): Weights {
     const L = cam.L;
@@ -440,8 +446,10 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // direction in space carries on smoothly instead of swinging round.
     if (L !== frameL) {
       const dir = dirOf(cam.yaw, cam.pitch).applyQuaternion(frameQ(frameL, qA)).applyQuaternion(frameQ(L, qB).invert());
-      cam.pitch = Math.asin(clamp(dir.y, -1, 1));
-      if (Math.hypot(dir.x, dir.z) > 1e-6) cam.yaw = Math.atan2(dir.x, dir.z);
+      // Keep an over-the-top view over the top (pitch past 90 degrees), or its roll would flip.
+      const p = Math.asin(clamp(dir.y, -1, 1)), over = Math.cos(cam.pitch) < 0, flat = Math.hypot(dir.x, dir.z) > 1e-6;
+      cam.pitch = over ? wrapPi(Math.PI - p) : p;
+      if (flat) cam.yaw = over ? Math.atan2(-dir.x, -dir.z) : Math.atan2(dir.x, dir.z);
       frameL = L;
     }
     if (anim && pull > 0) {
@@ -461,8 +469,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       cam.yaw += wrapPi(-cam.yaw) * ease;
       cam.pitch += -cam.pitch * ease;
     }
-    cam.pitch = clamp(cam.pitch, -1.5, 85 * D2R);
     const fWorld = fWorldAt(L), fSite = fSiteAt(L);
+    // From Earth scale outwards (and in the slice) you can tumble freely; nearer the ground the view stays upright.
+    if (fWorld > 0.999 || fr > 0.99) cam.pitch = wrapPi(cam.pitch);
+    else {
+      if (Math.cos(cam.pitch) < 0) { cam.pitch = wrapPi(Math.PI - cam.pitch); cam.yaw += Math.PI; }
+      cam.pitch = clamp(cam.pitch, -1.5, 85 * D2R);
+    }
+    poleUp += (fr * (rollFree ? 0 : 1) - poleUp) * (1 - Math.exp(-dt * 6));
     // A climb lets go of the ground-level framing early, before the lift gets going.
     const climbing = anim?.climb ? smooth(anim.t, 0, 0.25) : 0;
     // What the camera looks at: the focus, the tube, your site, the Earth's centre or the Sun.
@@ -482,7 +496,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // Near the Earth, keep the horizon level: 'up' is your local vertical. Inside the tube 'up' is the tube's, so
     // the cut-away stays still on screen while the mount tracks. In the meridian slice, Earth's axis points up
     // the screen so the equator runs left to right.
-    camera.up.set(0, 1, 0).applyQuaternion(qTmp).lerp(sky.upW, (1 - fWorld) * (1 - w.opt)).lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), fr).normalize();
+    camera.up.copy(upOf(cam.yaw, cam.pitch)).applyQuaternion(qTmp).lerp(sky.upW, (1 - fWorld) * (1 - w.opt) * (1 - fr))
+      .lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), poleUp).normalize();
     camera.lookAt(target);
     camera.fov = 50;
     // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
@@ -846,14 +861,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       const k = (eye.fov / canvas.clientHeight) * D2R;
       eye.yaw += dx * k; eye.pitch = clamp(eye.pitch + dy * k, -0.3, 1.55);
     } else {
-      cam.yaw -= dx * 0.006; cam.pitch = clamp(cam.pitch + dy * 0.006, -1.5, 1.5);
+      cam.yaw -= dx * 0.006 * Math.sign(Math.cos(cam.pitch) || 1); cam.pitch += dy * 0.006; // clamped where it matters
+      rollFree = true;
     }
   };
   const onWheel = (e: WheelEvent) => { e.preventDefault(); wake(); anim = null; zoomBy(e.deltaY * (e.deltaMode ? 0.05 : 0.0016)); };
   const onKey = (e: KeyboardEvent) => {
     wake();
     const k = ({ ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.08], ArrowDown: [0, -0.08] } as Record<string, [number, number]>)[e.key];
-    if (k) { cam.yaw += k[0]; cam.pitch = clamp(cam.pitch + k[1], -1.5, 1.5); e.preventDefault(); }
+    if (k) { cam.yaw += k[0]; cam.pitch += k[1]; rollFree = true; e.preventDefault(); }
     if (e.key === '+' || e.key === '=') zoomBy(-0.15);
     if (e.key === '-') zoomBy(0.15);
   };
