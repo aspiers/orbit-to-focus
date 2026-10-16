@@ -1,7 +1,7 @@
 import { forwardRef, useState } from 'react';
 import { PLACES, SENSORS, TARGETS, TELESCOPES } from '../constants.ts';
 import { SEESTAR, type TelescopeType } from '../optics.ts';
-import { live, scopeInfo, settings, useStore, type LayerId } from '../store.ts';
+import { live, scopeInfo, settings, ui, useStore, type LayerId } from '../store.ts';
 import { fmtRatio } from '../format.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
@@ -15,6 +15,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
     <aside id="panel" aria-label="Lessons and controls" ref={ref} className={closed ? 'closed' : ''}>
       <header>
         <h1>Orbit <span>to</span> Eyepiece</h1>
+        <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
         <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
       </header>
       <div role="tablist">

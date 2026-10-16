@@ -92,7 +92,22 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 /* Right column: time bar, scale ladder */
 #timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: flex-end;
   background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: calc(100% - 348px - 3 * var(--gap)); backdrop-filter: blur(8px); }
-#clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; }
+#clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; background: none; border-color: transparent; padding: 6px 4px; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
+dialog { background: #0e1324; color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog::backdrop { background: rgba(2, 3, 10, 0.6); }
+dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+dialog h2 { margin: 0; font: 600 18px var(--display); }
+dialog label { display: flex; gap: 10px; align-items: center; }
+dialog input { background: #1a2136; border: 1px solid #2d3756; border-radius: 6px; padding: 6px 8px; color-scheme: dark; }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.keys { columns: 2 300px; column-gap: 28px; }
+.keys section { break-inside: avoid; margin-bottom: 14px; }
+.keys h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.keys dl { margin: 0; }
+.keys dl div { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
+.keys dt { flex: none; min-width: 7.5em; }
+.keys dd { margin: 0; color: var(--muted); font-size: 13px; }
+kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margin-right: 4px; border: 1px solid #2d3756; border-bottom-width: 2px; border-radius: 4px; background: #1a2136; }
 .kv { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .kv b { font: 500 12px var(--mono); color: var(--fg); display: inline-block; text-align: right; }
 /* Fixed widths, so changing values don't nudge their neighbours along the bar. */

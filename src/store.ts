@@ -57,4 +57,7 @@ export const live = createStore<Live>({
   clock: '', lst: 0, sunAlt: 0, ra: 0, dec: 0, ha: 0, alt: 0, az: 0, rateA: 0, rateB: 0, offAxisDeg: 0, stop: 'solar', sunInView: false,
 });
 
+// Which dialog is open, if any.
+export const ui = createStore<{ dialog: 'time' | 'keys' | null }>({ dialog: null });
+
 export const scopeInfo = createStore<ScopeInfo>({ name: '', aperture: 0, focalLength: 0, nominalFocal: 0 });

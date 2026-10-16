@@ -5,6 +5,7 @@ import { live, settings } from '../store.ts';
 import { decodeState, encodeState } from '../url.ts';
 import { Panel } from './Panel.tsx';
 import { EyeBox, Ladder, Readout, TimeBar } from './Hud.tsx';
+import { Shortcuts } from './Shortcuts.tsx';
 
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null), labels = useRef<HTMLDivElement>(null), eyeview = useRef<HTMLCanvasElement>(null);
@@ -56,6 +57,7 @@ export function App() {
       <div id="labels" ref={labels} aria-hidden="true" />
       <Panel scene={scene} ref={panel} />
       <TimeBar scene={scene} />
+      <Shortcuts scene={scene} />
       <Ladder scene={scene} ref={ladder} />
       <Readout />
       <EyeBox ref={eyeview} />
