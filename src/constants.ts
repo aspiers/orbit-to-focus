@@ -29,7 +29,7 @@ export const SPEEDS: [string, number][] = [
 // The first is the default location.
 export const PLACES: [string, number, number][] = [
   ['Greenwich Observatory', 51.4769, -0.0005], ['Equator (Quito)', -0.18, -78.47], ['North Pole', 89.99, 0],
-  ['Sydney', -33.87, 151.21], ['Mauna Kea', 19.82, -155.47],
+  ['South Pole', -89.99, 0], ['Sydney', -33.87, 151.21], ['Mauna Kea', 19.82, -155.47],
 ];
 
 export type StopId = 'solar' | 'moon' | 'earth' | 'site' | 'scope' | 'optics' | 'focus';

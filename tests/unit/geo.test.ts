@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { here, locate, roundDeg } from '../../src/geo.ts';
+import { PLACES } from '../../src/constants.ts';
+import { here, locate, nextPlace, roundDeg } from '../../src/geo.ts';
 import { settings } from '../../src/store.ts';
 
 const D2R = Math.PI / 180, defaults = settings.get();
@@ -49,5 +50,31 @@ describe('visitor location', () => {
   it('copes with a browser that has no geolocation', () => {
     vi.stubGlobal('navigator', {});
     expect(() => locate()).not.toThrow();
+  });
+});
+
+describe('the P key', () => {
+  const place = () => [+(settings.get().lat / D2R).toFixed(4), +(settings.get().lon / D2R).toFixed(4)];
+  const names = (mine: [number, number] | null, n: number) => Array.from({ length: n }, () => {
+    nextPlace(mine);
+    const [la, lo] = place();
+    return PLACES.find(([, pla, plo]) => pla === la && plo === lo)?.[0] ?? `${la},${lo}`;
+  });
+
+  it('steps through the places in list order and wraps round', () => {
+    expect(names(null, PLACES.length)).toEqual([...PLACES.slice(1), PLACES[0]].map(([n]) => n));
+  });
+
+  it('includes your location first, once the browser has shared it', () => {
+    expect(names([-33.9, 151.2], 3)).toEqual([PLACES[1][0], PLACES[2][0], PLACES[3][0]]);
+    settings.set({ lat: PLACES.at(-1)![1] * D2R, lon: PLACES.at(-1)![2] * D2R });
+    expect(names([-33.9, 151.2], 2)).toEqual(['-33.9,151.2', PLACES[0][0]]);
+  });
+
+  it('goes to the first place from anywhere not in the list', () => {
+    settings.set({ lat: 12.3 * D2R, lon: 45.6 * D2R });
+    expect(names(null, 1)).toEqual([PLACES[0][0]]);
+    settings.set({ lat: 12.3 * D2R, lon: 45.6 * D2R });
+    expect(names([-33.9, 151.2], 1)).toEqual(['-33.9,151.2']);
   });
 });

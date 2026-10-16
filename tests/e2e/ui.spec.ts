@@ -27,7 +27,7 @@ test.describe('controls', () => {
     await expect(page.locator('#ladder button[aria-current=true]')).toContainText('Your site');
   });
 
-  test('keyboard shortcuts change the time and layers', async ({ page }) => {
+  test('keyboard shortcuts change the time, layers and place', async ({ page }) => {
     await open(page);
     await speed(page).selectOption({ label: '10 min / s' });
     await page.locator('#view').click();
@@ -43,6 +43,9 @@ test.describe('controls', () => {
     await page.keyboard.press('G');
     await page.getByRole('tab', { name: 'Sky & place' }).click();
     await expect(page.getByRole('checkbox', { name: 'See through the ground' })).toBeChecked();
+    // From Greenwich, the default, to the next place in the list.
+    await page.keyboard.press('P');
+    await expect(page.getByRole('combobox', { name: 'Choose a place' })).toHaveValue('1');
     await page.keyboard.press('4');
     await expect(page.locator('#panel .step')).toHaveText(/^4 of/);
     await page.keyboard.press('PageDown');

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { STOPS } from '../constants.ts';
+import { nextPlace } from '../geo.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import { live, settings, ui, useStore, type LayerId } from '../store.ts';
 import type { SceneApi } from '../scene/Scene.ts';
@@ -40,6 +41,9 @@ export const GROUPS: [string, Shortcut[]][] = [
     { keys: ['V'], label: 'Stand at your site and look at the sky', run: (s) => s.standHere() },
     { keys: ['←', '→', '↑', '↓'], label: 'Orbit or look around (after clicking the view)' },
     { keys: ['+', '−'], label: 'Zoom (after clicking the view)' },
+  ]],
+  ['Place', [
+    { keys: ['P'], label: 'Next place in the Sky & place list', run: () => nextPlace() },
   ]],
   ['Telescope', [
     { keys: ['W'], label: 'Equatorial wedge or alt-az mode', run: () => settings.set((s) => (s.telescope === 'dobsonian' ? {} : { mountMode: s.mountMode === 'eq' ? 'altaz' : 'eq' })) },

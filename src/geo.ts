@@ -1,4 +1,5 @@
 // The visitor's own location, from the browser when they allow it.
+import { PLACES } from './constants.ts';
 import { settings } from './store.ts';
 
 const D2R = Math.PI / 180;
@@ -18,4 +19,14 @@ export function locate() {
     const s = settings.get();
     if (s.lat === lat && s.lon === lon) settings.set({ lat: here[0] * D2R, lon: here[1] * D2R });
   }, () => {}, { timeout: 15000, maximumAge: 3600000 });
+}
+
+// Steps through the places in the order the place list shows them, wrapping round: "Your location" once the
+// browser has shared it, then PLACES. Anywhere else, such as a loc= from a link, goes to the first of them.
+export function nextPlace(mine = here) {
+  const list = [...(mine ? [mine] : []), ...PLACES.map(([, la, lo]) => [la, lo])];
+  const { lat, lon } = settings.get();
+  const i = list.findIndex(([la, lo]) => Math.abs(la * D2R - lat) < 1e-6 && Math.abs(lo * D2R - lon) < 1e-6);
+  const [la, lo] = list[(i + 1) % list.length];
+  settings.set({ lat: la * D2R, lon: lo * D2R });
 }

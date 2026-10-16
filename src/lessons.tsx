@@ -92,7 +92,7 @@ export const LESSONS: Lesson[] = [
     title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', southTarget: 'Sigma Octantis', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
     body: <>
       <p><NS n={<>Face north and the sky turns around the <b className="c-eq">north celestial pole</b>, less than a degree from Polaris.</>} s={<>Face south and the sky turns around the <b className="c-eq">south celestial pole</b>, about a degree from the faint star Sigma Octantis.</>} /> The pole’s altitude always equals your latitude: <Lat /> here. The next lessons show why.</p>
-      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place: at the equator the pole sits on the horizon, and at the <NS n="North" s="South" /> Pole it is overhead.</p>
+      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place, or press <kbd>P</kbd> to step through the places: at the equator the pole sits on the horizon, and at the <NS n="North" s="South" /> Pole it is overhead.</p>
     </>,
   },
   {
