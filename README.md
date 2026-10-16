@@ -21,3 +21,6 @@ Layout: `src/scene/` is the 3D scene (`Scene.ts` orchestrates; models, textures 
 `src/astro.ts` the astronomy.
 
 Append `#lesson11` (any number) to the URL to open a lesson directly.
+
+The app starts at Greenwich Observatory and asks the browser for your location, rounded to a tenth of a degree.
+An address that already carries `loc=` keeps its place and doesn't ask.

@@ -3,6 +3,7 @@ import { PLACES, SENSORS, TARGETS, TELESCOPES } from '../constants.ts';
 import { SEESTAR, type TelescopeType } from '../optics.ts';
 import { live, scopeInfo, settings, ui, useStore, type LayerId } from '../store.ts';
 import { fmtRatio } from '../format.ts';
+import { here, locate } from '../geo.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
 
@@ -179,7 +180,8 @@ const LAYERS: [LayerId, string, string?][] = [
 
 function SkyTab({ scene }: { scene: SceneApi | null }) {
   const s = useStore(settings, (x) => x);
-  const place = String(PLACES.findIndex(([, la, lo]) => Math.abs(la * D2R - s.lat) < 1e-6 && Math.abs(lo * D2R - s.lon) < 1e-6)).replace('-1', '');
+  const at = (la: number, lo: number) => Math.abs(la * D2R - s.lat) < 1e-6 && Math.abs(lo * D2R - s.lon) < 1e-6;
+  const place = here && at(...here) ? 'here' : String(PLACES.findIndex(([, la, lo]) => at(la, lo))).replace('-1', '');
   const setLoc = (la: number, lo: number) => settings.set({ lat: Math.min(89.99, Math.max(-89.99, la)) * D2R, lon: lo * D2R });
   return (
     <>
@@ -199,8 +201,9 @@ function SkyTab({ scene }: { scene: SceneApi | null }) {
           <label>Longitude <NumField min={-180} max={180} step={0.0001} value={s.lon * R2D} onValue={(v) => setLoc(s.lat * R2D, v)} /></label>
         </div>
         <div className="row">
-          <select aria-label="Choose a place" value={place} onChange={(e) => { const p = PLACES[+e.target.value]; if (p) setLoc(p[1], p[2]); }}>
+          <select aria-label="Choose a place" value={place} onChange={(e) => { if (e.target.value === 'here') return locate(); const p = PLACES[+e.target.value]; if (p) setLoc(p[1], p[2]); }}>
             <option value="" disabled>Other place</option>
+            <option value="here">Your location{here && ` (${here[0].toFixed(1)}, ${here[1].toFixed(1)})`}</option>
             {PLACES.map(([n, la, lo], i) => <option key={n} value={i}>{n} ({la.toFixed(2)}, {lo.toFixed(2)})</option>)}
           </select>
         </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as A from '../../src/astro.ts';
 
-const lat = 51.4769 * A.D2R, lon = -0.0005 * A.D2R;
+const LAT = 51.4769, lat = LAT * A.D2R, lon = -0.0005 * A.D2R; // Greenwich Observatory
 const deg = (rad: number) => rad * A.R2D;
 
 describe('astronomy', () => {
@@ -14,14 +14,14 @@ describe('astronomy', () => {
   it('keeps Polaris within its polar distance of the latitude all night', () => {
     for (let h = 0; h < 24; h += 3) {
       const p = A.horizontal(37.95 * A.D2R, 89.264 * A.D2R, Date.UTC(2026, 9, 16, h), lat, lon);
-      expect(Math.abs(deg(p.alt) - 51.477)).toBeLessThan(0.75);
+      expect(Math.abs(deg(p.alt) - LAT)).toBeLessThan(0.75);
     }
   });
 
   it('puts a star on the meridian due south at altitude 90 - latitude', () => {
     const t = Date.UTC(2026, 9, 16, 22);
     const m = A.horizontal(A.gmst(t) + lon, 0, t, lat, lon);
-    expect(deg(m.alt)).toBeCloseTo(90 - 51.4769, 6);
+    expect(deg(m.alt)).toBeCloseTo(90 - LAT, 6);
     expect(deg(m.az)).toBeCloseTo(180, 6);
   });
 

@@ -3,8 +3,8 @@ import type { FrameInfo } from '../../src/testHook.ts';
 
 declare global { interface Window { __otf: { log: FrameInfo[]; last(): FrameInfo | null; since(frame: number): FrameInfo[] } } }
 
-// A fixed clock start, so the sky (Vega high in the west from London) is the same on every run. Only Date is
-// fixed; timers and animation frames run as normal, and the app's own clock moves on from there.
+// A fixed clock start, so the sky (Vega high in the west from Greenwich, the default place) is the same on every
+// run. Only Date is fixed; timers and animation frames run as normal, and the app's own clock moves on from there.
 export const START = new Date('2026-10-16T20:00:00Z');
 
 export async function open(page: Page, hash = '') {

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { CameraSpec, TelescopeType } from './optics.ts';
 import { SEESTAR } from './optics.ts';
-import type { StopId } from './constants.ts';
+import { PLACES, type StopId } from './constants.ts';
 
 export type LayerId = 'eq' | 'ecl' | 'hor' | 'mer' | 'con' | 'names' | 'moonOrbit' | 'ground' | 'labels' | 'lat';
 export type Layers = Record<LayerId, boolean>;
@@ -45,8 +45,10 @@ export function createStore<T>(initial: T): Store<T> {
 export const useStore = <T, U>(store: Store<T>, select: (s: T) => U) => useSyncExternalStore(store.subscribe, () => select(store.get()));
 
 const D2R = Math.PI / 180;
+// Greenwich Observatory until the browser says where the visitor is (see geo.ts).
+const [, LAT0, LON0] = PLACES[0];
 export const settings = createStore<Settings>({
-  speed: 1, lastSpeed: 60, lat: 51.4769 * D2R, lon: -0.0005 * D2R,
+  speed: 1, lastSpeed: 60, lat: LAT0 * D2R, lon: LON0 * D2R,
   target: 0, customRa: 0, customDec: 0, mountMode: 'altaz', tracking: true,
   telescope: 'seestar', corrected: true, custom: SEESTAR, sensorPreset: 0,
   layers: { eq: true, ecl: true, hor: true, mer: true, con: true, names: true, moonOrbit: true, ground: false, labels: true, lat: false },

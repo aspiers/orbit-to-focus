@@ -3,6 +3,7 @@ import { createScene, type SceneApi } from '../scene/Scene.ts';
 import { applyLesson, LESSONS } from '../lessons.tsx';
 import { live, settings } from '../store.ts';
 import { decodeState, encodeState } from '../url.ts';
+import { locate } from '../geo.ts';
 import { Panel } from './Panel.tsx';
 import { EyeBox, Ladder, Readout, TimeBar } from './Hud.tsx';
 import { Shortcuts } from './Shortcuts.tsx';
@@ -22,6 +23,8 @@ export function App() {
     if (u.view === 'eye') s.standHere();
     else if (u.view) s.goTo(u.view);
     settings.set(u.patch);
+    // An address with loc= names its place, so only a plain visit asks the browser where the visitor is.
+    if (u.patch.lat === undefined) locate();
     return s.dispose;
   }, []);
 
