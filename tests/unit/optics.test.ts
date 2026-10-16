@@ -12,8 +12,7 @@ const reachesImage = (t: O.Telescope, r: O.Ray) => {
 };
 
 describe('optics', () => {
-  // Not the Dobsonian: focusSpread() only knows the Newtonian's folded axis by its type name.
-  it.each(DESIGNS.filter((d) => d !== 'dobsonian'))('%s: the correction removes the main aberration', (type) => {
+  it.each(DESIGNS)('%s: the correction removes the main aberration', (type) => {
     const good = O.makeTelescope(type, true), bad = O.makeTelescope(type, false);
     if (good.lens) expect(O.chromaticShift(good)).toBeLessThan(O.chromaticShift(bad) / 5);
     else expect(O.focusSpread(good)).toBeLessThan(O.focusSpread(bad) / 5);

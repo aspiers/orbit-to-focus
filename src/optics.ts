@@ -266,10 +266,12 @@ export function makeTelescope(type: TelescopeType, corrected: boolean, custom: C
   return tel;
 }
 
+// Asks by structure, not type name, so the Dobsonian (a renamed Newtonian) counts too.
+const isNewtonian = (t: Draft) => !!t.diagonal;
 // The part of the optics that forms the first focus (the eyepiece and tube walls are left out).
-const imaging = (t: Draft): Surface[] => (t.type === 'newtonian' ? [t.mirrors![0], t.diagonal!] : t.optics);
-const axisOrigin = (t: Draft): Vec2 => (t.type === 'newtonian' ? [650, 0] : [0, 0]);
-const nearAxis = (t: Draft) => (t.lens ? 2 : t.type === 'newtonian' ? 30 : 40);
+const imaging = (t: Draft): Surface[] => (isNewtonian(t) ? [t.mirrors![0], t.diagonal!] : t.optics);
+const axisOrigin = (t: Draft): Vec2 => (isNewtonian(t) ? [650, 0] : [0, 0]);
+const nearAxis = (t: Draft) => (t.lens ? 2 : isNewtonian(t) ? 30 : 40);
 
 // Paraxial focus and effective focal length, found by tracing a ray close to the axis
 // (just outside any central obstruction).
@@ -326,7 +328,7 @@ export function rayFan(t: Telescope, angle: number, count = 15): Ray[] {
 
 // Spread of the axis crossings of rays across the aperture, for the tests.
 export function focusSpread(t: Telescope) {
-  const lo = t.lens ? 2 : t.type === 'newtonian' ? 26 : 38;
+  const lo = t.lens ? 2 : isNewtonian(t) ? 26 : 38;
   const xs: number[] = [];
   for (let h = lo; h <= t.aperture * 0.48; h += 2) xs.push(dot(crossing(imaging(t), [t.uAperture + 50, h], [-1, 0], axisOrigin(t), t.exitAxis).at, t.exitAxis));
   return Math.max(...xs) - Math.min(...xs);
