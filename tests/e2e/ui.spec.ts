@@ -17,6 +17,7 @@ const apart: [string, string, number][] = [
   ['#timebar', '#panel', 12],
   ['#ladder > *', '#eyebox', 0], // the zoom buttons and scale note on short screens
   ['#timebar', '#eyebox', 0], // the camera view sits below the time bar on phones
+  ['#ladder > *', '#readout', 0], // on phones the readout wraps onto three rows
 ];
 
 test.describe('controls', () => {
