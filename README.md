@@ -1,10 +1,11 @@
 # Orbit to Eyepiece
 
 An interactive 3D explainer for new astronomers: zoom continuously from Earth's orbit round the Sun,
-through the Earth, Moon and celestial sphere, down to a Seestar S50 Pro on its tripod and the light
-rays focusing inside it. Guided lessons cover the ecliptic, axial tilt, RA/Dec, alt-az, the meridian,
+through the Earth, Moon and celestial sphere, down to a telescope on its mount and the light rays
+focusing inside it. A Seestar S50 Pro is the default; any of the designs can be chosen, and the camera
+refractor's focal length, aperture and sensor can be set to match your own. Guided lessons cover the ecliptic, axial tilt, RA/Dec, alt-az, the meridian,
 why a polar axis tilts by your latitude, equatorial mode, tracking, aperture, focal length, f-numbers,
-and five other telescope designs (Petzval, refractor, Newtonian, Dobsonian, Schmidt-Cassegrain).
+and other telescope designs (Petzval, refractor, Newtonian, Dobsonian, Schmidt-Cassegrain).
 
 TypeScript + React for the interface, three.js for the scene, built with Vite into one HTML file.
 

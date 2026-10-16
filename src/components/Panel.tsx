@@ -104,7 +104,7 @@ function TelescopeTab() {
             onChange={(v) => { const p = SENSORS[s.sensorPreset], k = v / Math.hypot(p[1], p[2]); setLens({ sensor: [p[1] * k, p[2] * k] }); }} />
         </>}
         <Explain />
-        {isCam && <button type="button" onClick={() => settings.set({ custom: SEESTAR, sensorPreset: 0 })}>Back to the Seestar S50 Pro</button>}
+        {isCam && <button type="button" onClick={() => settings.set({ custom: SEESTAR, sensorPreset: 0 })}>Reset to the default (Seestar S50 Pro)</button>}
       </fieldset>
       <fieldset>
         <legend>Point at</legend>
@@ -160,8 +160,8 @@ function Explain() {
     <div className="explain" aria-live="polite">
       <p><b>f/{N.toFixed(1)}</b> is the <strong>focal ratio</strong>, or f-number: focal length ÷ aperture = {F} mm ÷ {D} mm. It sets how steep the cone of light is as it converges on the focus: here it is {cone.toFixed(0)}° wide.</p>
       {info.sensor && info.field ? <>
-        <p>A smaller f-number means a fatter cone, so each pixel gets more light and a faint nebula needs less exposure. This setup needs <b>{fmtRatio((N / seestarN) ** 2)}×</b> the Seestar S50 Pro’s exposure for the same nebula. Stars are points, so for them the aperture matters more than the f-number.</p>
-        <p><strong>Aperture</strong> sets how much light is collected in total, <b>{fmtRatio((D / SEESTAR.aperture) ** 2)}×</b> the Seestar, and the finest detail the lens can separate: about <b>{(116 / D).toFixed(1)}″</b>.</p>
+        <p>A smaller f-number means a fatter cone, so each pixel gets more light and a faint nebula needs less exposure. This setup needs <b>{fmtRatio((N / seestarN) ** 2)}×</b> the exposure of an f/{seestarN.toFixed(1)} telescope (such as the default Seestar S50 Pro) for the same nebula. Stars are points, so for them the aperture matters more than the f-number.</p>
+        <p><strong>Aperture</strong> sets how much light is collected in total, <b>{fmtRatio((D / SEESTAR.aperture) ** 2)}×</b> that of a {SEESTAR.aperture} mm lens like the default Seestar’s, and the finest detail the lens can separate: about <b>{(116 / D).toFixed(1)}″</b>.</p>
         <p><strong>Focal length and sensor size</strong> set the field of view: <b>{info.field[0].toFixed(2)}° × {info.field[1].toFixed(2)}°</b>. The full Moon is 0.5° across. Each 2.9 µm pixel covers <b>{((206.265 * 2.9) / F).toFixed(1)}″</b> of sky.</p>
       </> : (
         <p>With an eyepiece, the focal length sets the magnification ({F} mm ÷ 25 mm = <b>{info.magnification?.toFixed(0)}×</b>) and the aperture sets how faint you can see and how fine the detail: about <b>{(116 / D).toFixed(1)}″</b>.</p>

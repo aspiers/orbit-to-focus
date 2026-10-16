@@ -93,9 +93,9 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'The Seestar in alt-az mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'altaz', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: false, mer: true, lat: false },
+    title: 'Alt-az mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'altaz', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: false, mer: true, lat: false },
     body: <>
-      <p>Out of the box, the <b>Seestar S50 Pro</b> is an <b>alt-azimuth</b> mount: the base turns it around the horizon (azimuth) and the arm tilts the optics up and down (altitude). The gold line shows where it is pointing.</p>
+      <p>Many telescopes sit on an <b>alt-azimuth</b> (alt-az) mount: the base turns the telescope around the horizon (azimuth) and an arm tilts it up and down (altitude). The example here, a Seestar S50 Pro, works this way out of the box. The gold line shows where it is pointing.</p>
       <p>To follow a star, both axes must move, at speeds that keep changing: compare the two axis speeds on the Telescope tab. The picture in the camera also slowly rotates (<b>field rotation</b>), which is why alt-az mode limits how long each exposure can be.</p>
     </>,
   },
@@ -111,22 +111,22 @@ export const LESSONS: Lesson[] = [
   {
     title: 'Equatorial mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'eq', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: true, mer: true, lat: true },
     body: <>
-      <p>For equatorial mode the Seestar’s base is tilted on a wedge until its turntable axis (blue) is <b>parallel to Earth’s axis</b>, pointing at the celestial pole. As the last lesson showed, that axis rises above the northern horizon by your latitude: <Lat />.</p>
-      <p>Now the turntable is the <b>RA axis</b> and the arm is the <b>Dec axis</b>. To follow a star only the RA axis turns, at a steady 15° per hour (one turn per sidereal day), undoing Earth’s spin. The Dec axis stays still and the field no longer rotates. That is <b>equatorial mode</b>.</p>
+      <p>An <b>equatorial</b> mount tilts its main axis (blue) until it is <b>parallel to Earth’s axis</b>, pointing at the celestial pole. Some mounts are built that way; an alt-az telescope like this one can be tilted on a wedge. As the last lesson showed, that axis rises above the northern horizon by your latitude: <Lat />.</p>
+      <p>Here the turntable becomes the <b>RA axis</b> and the arm the <b>Dec axis</b>. To follow a star only the RA axis turns, at a steady 15° per hour (one turn per sidereal day), undoing Earth’s spin. The Dec axis stays still and the field no longer rotates. That is <b>equatorial mode</b>.</p>
     </>,
   },
   {
     title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', telescope: 'seestar', corrected: true, layers: { lat: false },
     body: <>
-      <p>The purple box on the sky is the camera’s <b>field of view</b>: the patch of sky the Seestar is photographing.</p>
+      <p>The purple box on the sky is the camera’s <b>field of view</b>: the patch of sky the telescope’s camera is photographing.</p>
       <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The <b>camera view</b> (bottom right) shows the same thing from the sensor’s side.</p>
       <p>Inside the tube the drift is tiny: a quarter of a degree moves the focus about 1 mm across the sensor. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring Vega back.</p>
     </>,
   },
   {
-    title: 'Inside the Seestar', view: { stop: 'optics' }, speed: MIN10, telescope: 'seestar', corrected: true, tracking: true,
+    title: 'Inside a camera telescope', view: { stop: 'optics' }, speed: MIN10, telescope: 'seestar', corrected: true, tracking: true,
     body: <>
-      <p>The Seestar is a small <b>refractor</b>: a 50 mm lens at the front bends starlight so that it comes to a focus after travelling 260 mm, right on a camera sensor. There is no eyepiece; you see the sensor’s image on your phone.</p>
+      <p>The example telescope, a Seestar S50 Pro, is a small <b>refractor</b>: a 50 mm lens at the front bends starlight so that it comes to a focus after travelling 260 mm, right on a camera sensor. There is no eyepiece; you see the sensor’s image on a phone or tablet. Many astrophotography setups work the same way, with an astronomy camera at the focus.</p>
       <p>The focal length is the distance the light travels, not how far the sensor is from the lens. The real S50 Pro folds that 260 mm path to fit its 170 mm optical unit, so its sensor sits closer to the lens than 260 mm. Folding doesn’t change the focal length. Here the path is drawn straightened out, so you can see its full length.</p>
       <p>Glass bends blue light more than red, so a single lens focuses each colour at a different distance. Two lenses made of different glasses, one of them extra-low-dispersion (ED) glass, can cancel that. ZWO’s lens has four elements; this model uses two with the same focal length.</p>
     </>,
@@ -134,10 +134,10 @@ export const LESSONS: Lesson[] = [
   {
     title: 'Aperture, focal length and f-number', view: { stop: 'optics' }, speed: MIN10, telescope: 'seestar', corrected: true, tracking: true,
     body: <>
-      <p>Three numbers describe the Seestar’s optics, and all three are drawn in gold.</p>
+      <p>Three numbers describe any telescope’s optics, and all three are drawn in gold. Here they are for the example Seestar.</p>
       <p><b>Aperture</b> (50 mm) is the diameter of the lens: the size of the bucket catching light. <b>Focal length</b> (260 mm) is how far the light travels after the lens before it comes to a focus. The <b>image sensor</b> sits exactly there.</p>
       <p>The <b>f-number</b> is simply focal length ÷ aperture: 260 ÷ 50 = f/5.2. It describes the shape of the cone of light: a low f-number is a short, fat cone that pours more light onto each pixel.</p>
-      <p>Open the Telescope tab and drag the sliders: watch the cone, the field of view (dashed purple) and the camera view change.</p>
+      <p>Open the Telescope tab and drag the sliders, or set them to match your own telescope: watch the cone, the field of view (dashed purple) and the camera view change.</p>
     </>,
   },
   {
@@ -180,7 +180,7 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>Visual telescopes end in an <b>eyepiece</b>: a small magnifier that turns the converging light back into a parallel beam for your eye.</p>
       <p>Magnification = telescope focal length ÷ eyepiece focal length. With the same 25 mm eyepiece this 600 mm refractor gives 24×, and the 2000 mm Schmidt-Cassegrain 80×. More magnification means a smaller patch of sky: compare the eyepiece view for each design.</p>
-      <p>To finish, pick the Seestar S50 Pro again on the Telescope tab and explore freely.</p>
+      <p>To finish, pick the design closest to your own telescope on the Telescope tab (or set the camera refractor’s focal length, aperture and sensor to match it) and explore freely.</p>
     </>,
   },
 ];
