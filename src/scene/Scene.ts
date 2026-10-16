@@ -765,7 +765,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     updateMoonOrbit();
     shellSun.position.copy(sky.sunDirW).multiplyScalar(SHELL_R);
     shellTarget.position.copy(vec(sphToVec(sky.target.ra, sky.target.dec)).multiplyScalar(SHELL_R));
-    shellTarget.lookAt(V(0, 0, 0));
+    // lookAt takes a world point, and the world origin is the Sun. Facing Earth's centre puts the ring square
+    // to the line of sight, since the stars are effectively infinitely far away.
+    shellTarget.lookAt(earthPos);
 
     // Site frame: x east, y up, z south.
     const up = vec(sphToVec(s.lon, s.lat));
