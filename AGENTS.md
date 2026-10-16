@@ -22,10 +22,11 @@ system down through the Earth, your site and a telescope to its optics. See
   address-bar encoding, time controls and guide data. Takes about a second;
   run it after any change to `src/astro.ts`, `src/optics.ts`, `src/url.ts`,
   `src/time.ts` or `src/lessons.tsx`.
-- `npm run test:e2e`: builds `dist/e2e/` with `vite build --mode e2e`, serves
+- `npm run test:e2e`: builds `dist-e2e/` with `vite build --mode e2e`, serves
   it on port 5182 and runs the Playwright tests (`tests/e2e/`) in
   `/usr/bin/chromium` on the GPU. Takes about a minute. To run one test, use
-  `npx playwright test -g '<name>'` after a build.
+  `npx playwright test -g '<name>'` once `dist-e2e/` exists; `npm run build`
+  leaves it alone.
 - `npm run build`: typecheck, then a single-file build in `dist/`
   (`dist/orbit-to-focus.html` is the publishable artifact).
 
@@ -41,8 +42,8 @@ system down through the Earth, your site and a telescope to its optics. See
 - A test that guards a fix should fail without it. To check, build the fix's
   parent in `tmp/` (`git archive <sha>^ | tar -x -C tmp/old`, link
   `node_modules`, copy in `src/testHook.ts` and import it from
-  `src/main.tsx`, then `vite build --mode e2e --outDir dist/e2e`) and run
-  the test with `E2E_DIST=tmp/old/dist/e2e`.
+  `src/main.tsx`, then `vite build --mode e2e --outDir dist-e2e`) and run
+  the test with `E2E_DIST=tmp/old/dist-e2e`.
 
 ## Worktrees
 

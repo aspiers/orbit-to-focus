@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-// Browser tests against the e2e build (npm run test:e2e builds it into dist/e2e). E2E_DIST serves another
+// Browser tests against the e2e build (npm run test:e2e builds it into dist-e2e). E2E_DIST serves another
 // build instead, e.g. one of an older commit to check that a test fails without the fix it guards.
 const PORT = 5182;
 export default defineConfig({
@@ -16,7 +16,7 @@ export default defineConfig({
     launchOptions: { executablePath: '/usr/bin/chromium', args: ['--enable-gpu', '--ignore-gpu-blocklist'] },
   },
   webServer: {
-    command: `vite preview --port ${PORT} --strictPort --host 127.0.0.1 --outDir ${process.env.E2E_DIST ?? 'dist/e2e'}`,
+    command: `vite preview --port ${PORT} --strictPort --host 127.0.0.1 --outDir ${process.env.E2E_DIST ?? 'dist-e2e'}`,
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: false,
   },

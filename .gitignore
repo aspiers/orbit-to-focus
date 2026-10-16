@@ -1,6 +1,8 @@
 tmp/
 node_modules/
 dist/
+# Kept out of dist/, which npm run build empties
+dist-e2e/
 .vercel/
 # vercel link writes a deploy token to .env.local
 .env*
