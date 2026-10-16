@@ -6,6 +6,7 @@ import { settings } from '../../src/store.ts';
 import type { SceneApi } from '../../src/scene/Scene.ts';
 import { GROUPS } from '../../src/components/Shortcuts.tsx';
 import { STOPS, TARGETS, TELESCOPES } from '../../src/constants.ts';
+import { D2R, R2D, horizontal } from '../../src/astro.ts';
 
 // The text of every <kbd> in a lesson body.
 function kbds(node: ReactNode, out: string[] = []): string[] {
@@ -22,7 +23,7 @@ const SHORTCUT_KEYS = new Set(GROUPS.flatMap(([, list]) => list.filter((s) => s.
 describe.each(LESSONS.map((l, i) => [i + 1, l.title, l] as const))('guide %i: %s', (_n, _title, l) => {
   it('names a target, telescope and view that exist', () => {
     if (l.target) expect(TARGETS.map(([n]) => n)).toContain(l.target);
-    if (l.southTarget) expect(TARGETS.map(([n]) => n)).toContain(l.southTarget);
+    for (const n of l.southTarget ?? []) expect(TARGETS.map(([t]) => t)).toContain(n);
     if (l.telescope) expect(TELESCOPES.map(([id]) => id)).toContain(l.telescope);
     if (typeof l.view === 'object' && 'stop' in l.view) expect(STOPS.map((s) => s.id)).toContain(l.view.stop);
   });
@@ -45,7 +46,9 @@ const HEMISPHERE_WORDS: [string, string[], string[]][] = [
 ];
 const lesson = (title: string) => LESSONS.findIndex((l) => l.title === title);
 const text = (i: number) => renderToStaticMarkup(LESSONS[i].body as ReactElement).replace(/<[^>]+>/g, '');
-const fakeScene = () => ({ standHere: vi.fn(), goTo: vi.fn(), faceSiteMeridian: vi.fn() });
+// The browser tests' fixed time.
+const FIXED = Date.UTC(2026, 9, 16, 20);
+const fakeScene = (ms = FIXED) => ({ standHere: vi.fn(), goTo: vi.fn(), faceSiteMeridian: vi.fn(), getTime: () => ms });
 const home = settings.get();
 afterAll(() => settings.set(home));
 
@@ -67,4 +70,39 @@ describe.each([['Greenwich', 51.48, 0], ['Sydney', -33.87, 1]] as const)('guide 
     expect(pole.standHere).toHaveBeenCalledWith(side ? 0 : 180, 36);
     expect(TARGETS[settings.get().target][0]).toBe(side ? 'Sigma Octantis' : 'Polaris');
   });
+});
+
+// Altitude in degrees of the current target, which must be a star.
+const targetAlt = (ms: number) => {
+  const { target, lat, lon } = settings.get(), [, ra, dec] = TARGETS[target];
+  return horizontal(ra! * D2R, dec! * D2R, ms, lat, lon).alt * R2D;
+};
+const VEGA_STEPS = ['Alt-az mode', 'Equatorial mode', 'What tracking does', 'Other designs: Dobsonian'];
+
+describe.each(VEGA_STEPS)('%s', (title) => {
+  it('targets Vega from Greenwich', () => {
+    settings.set({ lat: 51.48 * D2R, lon: 0 });
+    applyLesson(lesson(title), fakeScene() as unknown as SceneApi);
+    expect(TARGETS[settings.get().target][0]).toBe('Vega');
+  });
+
+  it('targets a star well up from Sydney, at the fixed time and on every evening of the year', () => {
+    settings.set({ lat: -33.9 * D2R, lon: 151.2 * D2R });
+    applyLesson(lesson(title), fakeScene() as unknown as SceneApi);
+    expect(targetAlt(FIXED)).toBeGreaterThan(60);
+    for (let m = 0; m < 12; m++) {
+      const ms = Date.UTC(2026, m, 16, 11); // 21:00 in Sydney
+      applyLesson(lesson(title), fakeScene(ms) as unknown as SceneApi);
+      expect(targetAlt(ms), `month ${m + 1}`).toBeGreaterThan(15);
+    }
+  });
+});
+
+it.each([['Greenwich', 51.48, 0, 'Vega'], ['Sydney', -33.9, 151.2, 'Canopus']] as const)('What tracking does names the target at %s', (_place, lat, lon, star) => {
+  settings.set({ lat: lat * D2R, lon: lon * D2R });
+  applyLesson(lesson('What tracking does'), fakeScene() as unknown as SceneApi);
+  const t = text(lesson('What tracking does'));
+  expect(t).toContain(`so ${star} drifts`);
+  expect(t).toContain(`bring ${star} back`);
+  if (star !== 'Vega') expect(t).not.toContain('Vega');
 });

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { D2R, horizontal } from './astro.ts';
 import { TARGETS, type StopId } from './constants.ts';
 import { settings, useStore, type Layers, type Settings } from './store.ts';
 import type { TelescopeType } from './optics.ts';
@@ -8,6 +9,8 @@ const R2D = 180 / Math.PI;
 const Lat = () => <b>{useStore(settings, (s) => (Math.abs(s.lat) * R2D).toFixed(1))}°</b>;
 // Text for the northern hemisphere (and the equator) or the southern one, following the current latitude.
 const NS = ({ n, s }: { n: ReactNode; s: ReactNode }) => <>{useStore(settings, (st) => st.lat < 0) ? s : n}</>;
+// The current target's name, for steps whose southern star depends on the time.
+const Target = () => <>{useStore(settings, (s) => TARGETS[s.target][0])}</>;
 
 interface Lesson {
   title: string;
@@ -18,12 +21,15 @@ interface Lesson {
   mountMode?: Settings['mountMode'];
   tracking?: boolean;
   target?: string;
-  southTarget?: string; // replaces target south of the equator
+  southTarget?: string[]; // replaces target south of the equator with whichever of these stands highest
   telescope?: TelescopeType;
   corrected?: boolean;
 }
 
 const MIN10 = 600, WEEK = 604800;
+// Vega never rises south of about 51° S. These two bright stars are 8 h of RA apart, so from mid-southern
+// latitudes one of them is well up at any hour and season (from Sydney, above 16° every evening).
+const SOUTH_STARS = ['Canopus', 'Alpha Centauri'];
 
 // Each lesson sets up the scene, then explains what to watch.
 export const LESSONS: Lesson[] = [
@@ -89,14 +95,14 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', southTarget: 'Sigma Octantis', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
+    title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', southTarget: ['Sigma Octantis'], layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
     body: <>
       <p><NS n={<>Face north and the sky turns around the <b className="c-eq">north celestial pole</b>, less than a degree from Polaris.</>} s={<>Face south and the sky turns around the <b className="c-eq">south celestial pole</b>, about a degree from the faint star Sigma Octantis.</>} /> The pole’s altitude always equals your latitude: <Lat /> here. The next lessons show why.</p>
       <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place, or press <kbd>P</kbd> to step through the places: at the equator the pole sits on the horizon, and at the <NS n="North" s="South" /> Pole it is overhead.</p>
     </>,
   },
   {
-    title: 'Alt-az mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'altaz', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: false, mer: true, lat: false },
+    title: 'Alt-az mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'altaz', target: 'Vega', southTarget: SOUTH_STARS, tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: false, mer: true, lat: false },
     body: <>
       <p>Many telescopes sit on an <b>alt-azimuth</b> (alt-az) mount: the base turns the telescope around the horizon (azimuth) and an arm tilts it up and down (altitude). The example here, a Seestar S50 Pro, works this way out of the box. The gold line shows where it is pointing.</p>
       <p>To follow a star, both axes must move, at speeds that keep changing: compare the two axis speeds on the Telescope tab. The picture in the camera also slowly rotates (<b>field rotation</b>), which is why alt-az mode limits how long each exposure can be.</p>
@@ -112,18 +118,18 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'Equatorial mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'eq', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: true, mer: true, lat: true },
+    title: 'Equatorial mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'eq', target: 'Vega', southTarget: SOUTH_STARS, tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: true, mer: true, lat: true },
     body: <>
       <p>An <b>equatorial</b> mount tilts its main axis (blue) until it is <b>parallel to Earth’s axis</b>, pointing at the celestial pole. Some mounts are built that way; an alt-az telescope like this one can be tilted on a wedge. As the last lesson showed, that axis rises above the <NS n="northern" s="southern" /> horizon by your latitude: <Lat />.</p>
       <p>Here the turntable becomes the <b>RA axis</b> and the arm the <b>Dec axis</b>. To follow a star only the RA axis turns, at a steady 15° per hour (one turn per sidereal day), undoing Earth’s spin. The Dec axis stays still and the field no longer rotates. That is <b>equatorial mode</b>.</p>
     </>,
   },
   {
-    title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', telescope: 'seestar', corrected: true, layers: { lat: false },
+    title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', southTarget: SOUTH_STARS, telescope: 'seestar', corrected: true, layers: { lat: false },
     body: <>
       <p>The purple box on the sky is the telescope’s <b>field of view</b>: the patch of sky it shows you.</p>
-      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The camera or eyepiece view (bottom right) shows the same thing through the telescope.</p>
-      <p>The light drawn inside the tube comes from the centre of the field, so it always runs along the tube while Vega drifts away from it. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring Vega back.</p>
+      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so <NS n="Vega" s={<Target />} /> drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The camera or eyepiece view (bottom right) shows the same thing through the telescope.</p>
+      <p>The light drawn inside the tube comes from the centre of the field, so it always runs along the tube while <NS n="Vega" s={<Target />} /> drifts away from it. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring <NS n="Vega" s={<Target />} /> back.</p>
     </>,
   },
   {
@@ -165,7 +171,7 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'Other designs: Dobsonian', view: { stop: 'scope' }, speed: MIN10, telescope: 'dobsonian', mountMode: 'altaz', corrected: true, tracking: true, target: 'Vega',
+    title: 'Other designs: Dobsonian', view: { stop: 'scope' }, speed: MIN10, telescope: 'dobsonian', mountMode: 'altaz', corrected: true, tracking: true, target: 'Vega', southTarget: SOUTH_STARS,
     body: <>
       <p>A <b>Dobsonian</b> is a Newtonian on the simplest possible mount: a wooden <b>rocker box</b>. The box turns on a board on the ground (azimuth), and the tube tilts on two bearings in its sides (altitude). This one is 150 mm f/5, like a small tabletop Dobsonian.</p>
       <p>Without a motorised mount, the money goes into the mirror instead, so a Dobsonian gives the most aperture for the price. Most are pushed by hand to follow a star, which is fine for looking through an eyepiece but not for long camera exposures. Being alt-az, they can’t go on an equatorial wedge.</p>
@@ -195,7 +201,11 @@ export function applyLesson(i: number, scene: SceneApi) {
   if (l.layers) patch.layers = { ...settings.get().layers, ...l.layers };
   if (l.mountMode) patch.mountMode = l.mountMode;
   if (l.tracking !== undefined) patch.tracking = l.tracking;
-  const target = (south && l.southTarget) || l.target;
+  const alt = (name: string) => {
+    const [, ra, dec] = TARGETS.find((t) => t[0] === name)!;
+    return horizontal(ra! * D2R, dec! * D2R, scene.getTime(), settings.get().lat, settings.get().lon).alt;
+  };
+  const target = (south && l.southTarget?.reduce((a, b) => (alt(b) > alt(a) ? b : a))) || l.target;
   if (target) patch.target = TARGETS.findIndex((t) => t[0] === target);
   if (l.telescope) patch.telescope = l.telescope;
   if (l.corrected !== undefined) patch.corrected = l.corrected;
