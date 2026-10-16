@@ -39,6 +39,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   let freeGoal = false, fr = 0;
   // The slice opens with Earth's axis up the screen; once you drag, the roll is yours (poleUp fades out).
   let poleUp = 0, rollFree = false;
+  let upright = false; // whether the last frame held the view upright (pitch within +-85 degrees)
   const pts = new Map<number, [number, number]>(); // pointers currently down on the canvas
   // Render at full rate only while something is moving: input, a fly-to, a slew, and the eases that follow.
   let activeUntil = 0;
@@ -478,10 +479,13 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     }
     const fWorld = fWorldAt(L), fSite = fSiteAt(L);
     // From Earth scale outwards (and in the slice) you can tumble freely; nearer the ground the view stays upright.
-    if (fWorld > 0.999 || fr > 0.99) cam.pitch = wrapPi(cam.pitch);
+    if (fWorld > 0.999 || fr > 0.99) { cam.pitch = wrapPi(cam.pitch); upright = false; }
     else {
-      if (Math.cos(cam.pitch) < 0) { cam.pitch = wrapPi(Math.PI - cam.pitch); cam.yaw += Math.PI; }
+      // Turn a view that arrives over the top the right way up, but stop a drag that overshoots the top
+      // (or the bottom) of an upright view there, rather than flipping it round.
+      if (Math.cos(cam.pitch) < 0 && !upright) { cam.pitch = wrapPi(Math.PI - cam.pitch); cam.yaw += Math.PI; }
       cam.pitch = clamp(cam.pitch, -1.5, 85 * D2R);
+      upright = true;
     }
     poleUp += (fr * (rollFree ? 0 : 1) - poleUp) * (1 - Math.exp(-dt * 6));
     // A climb lets go of the ground-level framing early, before the lift gets going.
@@ -493,13 +497,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // After landing (below about 60 m) it is exactly your site.
     const tGround = clamp(1 - 0.8 * d * landing(L), 0, 1);
     // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
-    // to show its target star above it. Dragging sideways turns the sky behind it; up and down is limited to
-    // what keeps the ground in the bottom 20% without moving the telescope, and the camera above the ground.
+    // to show its target star above it. Dragging sideways turns the sky behind it; dragging up and down orbits
+    // over the telescope, down to just above the ground. Arriving, the camera is brought no higher than keeps
+    // the ground in the bottom 20%, but like the other framing rules that never pulls back a drag.
     const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
     if (kFrame > 0) {
       const t = Math.tan((groundFov * D2R) / 2), hi = Math.atan(0.5 * t) - Math.atan(0.55 * t);
       const lo = Math.asin(clamp((0.1 - mount.anchorHeight) / (d / METRE), -1, 1));
-      cam.pitch += (clamp(cam.pitch, lo, Math.max(lo, hi)) - cam.pitch) * kFrame;
+      if (cam.pitch > hi) cam.pitch += (Math.max(lo, hi) - cam.pitch) * kFrame * (anim ? 1 : ease);
+      cam.pitch += (Math.max(cam.pitch, lo) - cam.pitch) * kFrame;
     }
     const target = anchor.optics.clone().lerp(anchor.focus, tFocus).lerp(anchor.site, fSite);
     target.copy(anchor.earth.clone().lerp(target, tGround)).lerp(V(), tSun);
@@ -519,7 +525,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (kFrame > 0 && sky.h.alt > -0.05) {
       camera.getWorldDirection(fwd);
       dT.copy(anchor.scope).sub(camera.position).normalize();
-      const spread = dT.angleTo(sky.targetDirW);
+      // Measured from where landing puts you, behind the telescope and 0.2 rad round from the star, so that
+      // dragging the camera never changes the zoom.
+      const spread = Math.acos(Math.cos(sky.h.alt) * Math.cos(0.2));
       // The smallest view from 50 to 110 degrees that fits the star, found continuously (whole steps made the zoom jump).
       const fits = (f: number) => Math.atan(0.5 * Math.tan((f * D2R) / 2)) + Math.atan(0.85 * Math.tan((f * D2R) / 2)) >= spread;
       let lo = 50, hi = 110;
