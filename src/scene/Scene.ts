@@ -167,7 +167,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const ground = groundCap(1 / METRE);
   site.add(ground);
   const groundMat = ground.material as THREE.ShaderMaterial;
-  site.add(new THREE.HemisphereLight(0xb8c6ff, 0x1a2418, 1.1));
+  const hemi = new THREE.HemisphereLight(0xb8c6ff, 0x1a2418, 1.1);
+  site.add(hemi);
   const mountHolder = new THREE.Group();
   site.add(mountHolder);
   const wedgeArc = new THREE.Group();
@@ -696,6 +697,12 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     sky.upW.set(0, 1, 0).applyQuaternion(site.getWorldQuaternion(qTmp));
     placeCamera(w, s, pull, dt);
     if (anim && anim.t >= 1) { anim = null; wake(); }
+    // Grow the telescope (about 0.45 m tall) as you zoom out so it never shrinks below about 50 px, up to half an
+    // Earth radius tall.
+    const minAngle = (50 * camera.fov * D2R) / Math.max(1, canvas.clientHeight), siteScale = 0.45 * METRE * earthSys.scale.x;
+    const grow = clamp((minAngle * camera.position.distanceTo(anchor.site)) / siteScale, 1, 0.5 / (0.45 * METRE));
+    mountHolder.scale.setScalar(grow);
+    wedgeArc.scale.setScalar(grow);
     for (const c of [camera, bgCamera]) c.setViewOffset(canvas.clientWidth, canvas.clientHeight, -shift.dx, shift.dy, canvas.clientWidth, canvas.clientHeight);
     bgCamera.quaternion.copy(camera.quaternion);
     bgCamera.fov = camera.fov;
@@ -764,7 +771,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     earthMat.opacity = (seeThrough ? 0.2 : Ly.lat ? lerp(1, 0.3, w.earth) : 1) * (1 - w.opt);
     earthMat.depthWrite = earthMat.opacity > 0.9;
     earth.visible = earthMat.opacity > 0.01;
-    site.visible = w.site > 0.01;
+    hemi.visible = w.site > 0.01; // the telescope stays visible at every zoom; the site's light doesn't
     const bodyAlpha = 1 - 0.75 * w.opt;
     for (const m of [...mount.materials, ...model.bodyMaterials]) m.opacity = (m.userData.base ??= m.opacity) * bodyAlpha;
     model.inner.visible = w.opt > 0.01 && s.mode !== 'eye';

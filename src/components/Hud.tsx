@@ -25,8 +25,8 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
 
 const SCALE_NOTES = {
   solar: 'Not to scale. At true scale the Sun would be 12× smaller, Earth a speck 1/1000 of this size, and the Moon 4× farther out.',
-  earth: 'The Moon is drawn 4× closer than its true 60 Earth radii. The celestial sphere has no real size: stars are effectively infinitely far away.',
-  site: 'The telescope is drawn about 60× larger than true scale against the Earth, so the zoom stays smooth. Stars are at infinite distance.',
+  earth: 'The Moon is drawn 4× closer than its true 60 Earth radii. The telescope is hugely oversized so you can see where it is and where it points. The celestial sphere has no real size: stars are effectively infinitely far away.',
+  site: 'The telescope is drawn about 60× larger than true scale against the Earth, so the zoom stays smooth, and grows further as you zoom out so it stays visible. Stars are at infinite distance.',
   optics: 'Optics to scale in millimetres. Rays are traced through one slice of the tube.',
 };
 
