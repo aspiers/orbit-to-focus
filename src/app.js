@@ -36,9 +36,9 @@ const LM = Math.log10(METRE);
 const STOPS = [
   { id: 'solar', name: 'Solar system', hint: 'Earth’s orbit', L: 2.85, pitch: 28 },
   { id: 'moon', name: 'Earth & Moon', hint: 'Moon’s orbit', L: 1.6, pitch: 22 },
-  { id: 'earth', name: 'Earth & sky', hint: 'celestial sphere', L: 0.95, pitch: 18 },
-  { id: 'site', name: 'Your site', hint: '40 m away', L: LM + 1.6, pitch: 22 },
-  { id: 'scope', name: 'Telescope', hint: '2.5 m away', L: LM + 0.4, pitch: 12 },
+  { id: 'earth', name: 'Earth & sky', hint: 'celestial sphere', L: 1.08, pitch: 18 },
+  { id: 'site', name: 'Your site', hint: '15 m away', L: LM + 1.18, pitch: 7 },
+  { id: 'scope', name: 'Telescope', hint: '5 m away', L: LM + 0.72, pitch: 12 },
   { id: 'optics', name: 'Inside the tube', hint: 'lens to sensor', L: LM - 0.35, pitch: 0 },
   { id: 'focus', name: 'At the focus', hint: 'a few mm', L: LM - 2.2, pitch: 0 },
 ];
@@ -269,7 +269,7 @@ axisB.add(pointer);
 let scope = null, scopeGroup = new THREE.Group(), rayLines = null;
 axisB.add(scopeGroup);
 const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xb8e6ff, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
-const mirrorMat = new THREE.MeshStandardMaterial({ color: 0xdfe6f0, metalness: 1, roughness: 0.15, side: THREE.DoubleSide, transparent: true });
+const mirrorMat = new THREE.MeshStandardMaterial({ color: 0xd6e0ee, metalness: 0.25, roughness: 0.25, side: THREE.DoubleSide, transparent: true });
 const tubeMats = [];
 
 // Profile of a conic surface from radius r0 to r1 as (r, u) pairs.
@@ -382,8 +382,10 @@ function buildScope() {
   updateScopeUI();
 }
 const focusMarker = new THREE.Object3D();
-const opticsFrame = new THREE.Object3D(); // camera frame for the side view of the optics
-opticsFrame.rotation.x = Math.PI / 2;
+// Camera frame for the side view of the optics: looks at the ray slice (tube x-z plane) from the
+// tube's +y side, away from the mount arm, with the sky end of the tube at the top of the screen.
+const opticsFrame = new THREE.Object3D();
+opticsFrame.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1, 0, 0), V(0, 0, 1), V(0, 1, 0)));
 axisB.add(opticsFrame);
 
 const WAVE_RGB = { r: [1, 0.3, 0.25], g: [0.75, 1, 0.35], b: [0.3, 0.5, 1] };
@@ -455,15 +457,15 @@ const conLines = (() => {
   return new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineMat(0x7d8fc0, 0.32));
 })();
 bgEq.add(conLines);
-const bgEqGrid = sphereGrid(SKY_R, 15, 15, COLORS.eq, 0.2, true);
+const bgEqGrid = sphereGrid(SKY_R, 15, 15, COLORS.eq, 0.3, true);
 bgEq.add(bgEqGrid);
 const bgEclLine = polyline(circle(SKY_R), lineMat(COLORS.ecl, 0.85));
 bgEcl.add(bgEclLine);
 
 // Horizon frame in the background: x east, y up, z south.
 const altazGrid = new THREE.Group();
-for (let alt = 10; alt < 90; alt += 10) altazGrid.add(polyline(circle(1, 128, (t) => V(Math.cos(t), 0, Math.sin(t)).multiplyScalar(Math.cos(alt * D2R) * SKY_R).setY(Math.sin(alt * D2R) * SKY_R)), lineMat(COLORS.hor, alt % 30 ? 0.12 : 0.25)));
-for (let az = 0; az < 360; az += 30) altazGrid.add(polyline(Array.from({ length: 33 }, (_, i) => altAzDir(az * D2R, ((i / 32) * 90) * D2R).multiplyScalar(SKY_R)), lineMat(COLORS.hor, 0.18)));
+for (let alt = 10; alt < 90; alt += 10) altazGrid.add(polyline(circle(1, 128, (t) => V(Math.cos(t), 0, Math.sin(t)).multiplyScalar(Math.cos(alt * D2R) * SKY_R).setY(Math.sin(alt * D2R) * SKY_R)), lineMat(COLORS.hor, alt % 30 ? 0.22 : 0.4)));
+for (let az = 0; az < 360; az += 30) altazGrid.add(polyline(Array.from({ length: 33 }, (_, i) => altAzDir(az * D2R, ((i / 32) * 90) * D2R).multiplyScalar(SKY_R)), lineMat(COLORS.hor, 0.32)));
 const horizonLine = polyline(circle(SKY_R, 256, (t) => V(Math.cos(t) * SKY_R, 0, Math.sin(t) * SKY_R)), lineMat(COLORS.hor, 0.95));
 const meridianLine = polyline(Array.from({ length: 129 }, (_, i) => { const a = (i / 128) * Math.PI; return V(0, Math.sin(a) * SKY_R, Math.cos(a) * SKY_R); }), lineMat(COLORS.mer, 0.95));
 const belowShade = new THREE.Mesh(new THREE.SphereGeometry(SKY_R * 0.98, 48, 24, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x0b120c, transparent: true, opacity: 0.0, side: THREE.BackSide, depthWrite: false }));
@@ -536,8 +538,8 @@ function updateMount(dtReal) {
   const tiltDone = Math.abs(tiltGoal - state.tilt) < 1e-4;
   if (state.tracking || slewing) {
     if (slewing || !tiltDone) {
-      // Slew at up to 40 degrees per second, as a real mount would.
-      const step = dtReal * 40 * D2R;
+      // Slew at up to 80 degrees per second, faster than a real mount, so lessons don't wait.
+      const step = dtReal * 80 * D2R;
       const da = wrapPi(goal.a - state.axes.a), db = goal.b - state.axes.b;
       state.axes.a += clamp(da, -step, step); state.axes.b += clamp(db, -step, step);
       if (Math.abs(da) < step && Math.abs(db) < step && tiltDone) slewing = false;
@@ -567,11 +569,12 @@ function goTo(stopId, opts = {}) {
   const s = STOPS.find((x) => x.id === stopId);
   state.mode = 'orbit';
   // The tube view frames the whole tube, whatever its length.
-  const L = s.id === 'optics' ? Math.log10(Math.max(0.3, (scope.u1 - scope.u0) / 1000) * 1.7 * METRE) : s.L;
+  const L = s.id === 'optics' ? Math.log10(clamp((scope.u1 - scope.u0) / 1000 * 1.35, 0.45, 1.5) * METRE) : s.L;
   anim = { t: 0, from: { ...state.cam }, to: { L, yaw: opts.yaw ?? (stopId === 'optics' || stopId === 'focus' ? 0 : state.cam.yaw), pitch: (opts.pitch ?? s.pitch) * D2R } };
   syncModeUI();
 }
-function standHere(yawDeg = 180, pitchDeg = 30) {
+// Yaw 0 faces south, 180 faces north.
+function standHere(yawDeg = 0, pitchDeg = 30) {
   state.mode = 'eye';
   state.eye.yaw = yawDeg * D2R; state.eye.pitch = pitchDeg * D2R;
   syncModeUI();
@@ -584,10 +587,10 @@ function weights() {
     L,
     sol: smooth(L, 1.9, 2.5),
     moon: smooth(L, 0.4, 1.0) * (1 - smooth(L, 2.5, 3.0)),
-    earth: smooth(L, -1.6, -0.6) * (1 - smooth(L, 1.7, 2.3)),
+    earth: smooth(L, -1.6, -0.6) * (1 - smooth(L, 1.2, 1.45)),
     site: 1 - smooth(L, LM + 2.7, LM + 3.7),
     scope: 1 - smooth(L, LM + 2.0, LM + 2.6),
-    opt: 1 - smooth(L, LM - 0.1, LM + 0.3),
+    opt: 1 - smooth(L, LM + 0.25, LM + 0.5),
   };
 }
 
@@ -611,9 +614,9 @@ function placeCamera(w) {
     return;
   }
   camera.fov = 50;
-  const tFocus = 1 - smooth(L, LM - 1.6, LM - 0.8), tSite = smooth(L, LM - 0.3, LM + 0.3), tEarth = smooth(L, LM + 2.6, LM + 4.6), tSun = smooth(L, 2.0, 2.6);
+  const tFocus = 1 - smooth(L, LM - 1.6, LM - 0.8), tSite = smooth(L, LM + 0.2, LM + 0.6), tEarth = smooth(L, LM + 2.6, LM + 4.6), tSun = smooth(L, 2.0, 2.6);
   const target = anchor.optics.clone().lerp(anchor.focus, tFocus).lerp(anchor.site, tSite).lerp(anchor.earth, tEarth).lerp(anchor.sun.set(0, 0, 0), tSun);
-  const fWorld = smooth(L, LM + 3.6, LM + 5.2), fSite = smooth(L, LM - 0.3, LM + 0.2);
+  const fWorld = smooth(L, LM + 3.6, LM + 5.2), fSite = smooth(L, LM + 0.2, LM + 0.5);
   qTmp.copy(qOpt).slerp(qSite, fSite).slerp(qWorld, fWorld);
   const { yaw, pitch } = state.cam;
   const off = V(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw)).multiplyScalar(d).applyQuaternion(qTmp);
@@ -766,7 +769,7 @@ function frame(now) {
   bgSunLight.position.copy(sky.sunDirW).multiplyScalar(SKY_R * 2);
   skySun.position.copy(sky.sunDirW).multiplyScalar(SKY_R * 0.97);
   skyMoon.position.copy(sky.moonDirW).multiplyScalar(SKY_R * 0.96);
-  const upW = up.clone().applyQuaternion(tilt.getWorldQuaternion(qTmp));
+  const upW = V(0, 1, 0).applyQuaternion(qSite);
   sky.upW = upW;
   const sunUp = sky.sunDirW.dot(upW);
   const daylight = w.site * smooth(Math.asin(clamp(sunUp, -1, 1)) * R2D, -12, 4);
@@ -806,10 +809,9 @@ function frame(now) {
   ground.material.opacity = seeThrough ? 0.25 : 1;
   earthMat.opacity = seeThrough ? 0.2 : 1;
   earthMat.depthWrite = !seeThrough;
-  setAlpha(site, w.scope > 0 || w.site > 0 ? 1 : 0);
-  site.visible = w.site > 0.01;
+    site.visible = w.site > 0.01;
   const bodyAlpha = 1 - 0.85 * w.opt;
-  for (const m of tubeMats) { m.opacity = bodyAlpha; m.depthWrite = bodyAlpha > 0.9; }
+  for (const m of [...tubeMats, metal, dark]) { m.opacity = bodyAlpha; m.depthWrite = bodyAlpha > 0.9; }
   pointer.material.opacity = 0.55 * w.scope * (1 - w.opt);
   polarRod.material.opacity = state.mountMode === 'eq' ? 0.9 * w.scope : 0;
   sun.visible = sunGlow.visible = w.site < 0.99 || state.mode !== 'eye';
@@ -837,7 +839,8 @@ function frame(now) {
     const band = near === 'solar' ? 'solar' : near === 'moon' || near === 'earth' ? 'earth' : near === 'optics' || near === 'focus' ? 'optics' : 'site';
     $('scaleNote').textContent = SCALE_NOTES[band];
   }
-  requestAnimationFrame(frame);
+  window.__ote = { state, sky, scopeGroup, axisB, THREE, scene, ground, earth, camera };
+requestAnimationFrame(frame);
 }
 
 // ---------- labels: definitions ----------
@@ -886,17 +889,17 @@ opticsLbl('Starlight', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
 opticsLbl('Focus', () => [scope.focus[1], 0, scope.focus[0]]);
 opticsLbl('Objective lens', () => (scope.lens ? [scope.aperture * 0.62, 0, scope.lens.top] : [0, 0, -1e5]));
 opticsLbl('Primary mirror', () => (scope.mirrors ? [scope.mirrors[0].rMax * 0.8, 0, 8] : [0, 0, -1e5]));
-opticsLbl('Secondary mirror', () => (scope.type === 'sct' ? [-34, 0, 325] : scope.diagonal ? [-30, 0, 640] : [0, 0, -1e5]));
+opticsLbl('Secondary mirror', () => (scope.type === 'sct' ? [-34, 0, 325] : scope.diagonal ? [-40, 0, 590] : [0, 0, -1e5]));
 opticsLbl('Corrector plate', () => (scope.corrector ? [-80, 0, 334] : [0, 0, -1e5]));
-opticsLbl('Eyepiece', () => (scope.eyepiece ? [scope.eyepiece.c[1] + 22, 0, scope.eyepiece.c[0]] : [0, 0, -1e5]));
+opticsLbl('Eyepiece', () => (scope.eyepiece ? [scope.eyepiece.c[1] + (scope.exitAxis[1] ? 10 : 22), 0, scope.eyepiece.c[0] + (scope.exitAxis[1] ? 40 : 0)] : [0, 0, -1e5]));
 opticsLbl(() => (scope.sensor ? `Image sensor ${scope.sensor[0].toFixed(1)} × ${scope.sensor[1].toFixed(1)} mm` : ''), () => (scope.sensor ? [scope.sensor[0] / 2 + 10, 0, scope.focus[0] - 6] : [0, 0, -1e5]));
 const fNum = () => (scope.focalLength / scope.aperture).toFixed(1);
 const nominalF = () => (scope.sensor ? state.custom.focal : Math.round(scope.focalLength / 10) * 10);
 const dimLbl = (text, pos) => label(text, 'l-dim', (v) => scopeGroup.userData.optics.localToWorld(v.set(...pos())), () => wNow().opt * (state.mode === 'eye' ? 0 : 1));
 dimLbl(() => `Aperture ${scope.aperture} mm`, () => [scope.aperture / 2 + 8, 0, scope.uAperture + 14]);
 dimLbl(() => `Focal length ${nominalF()} mm`, () => (scope.lens ? [-(scope.rTube + 12), 0, scope.focus[0] + scope.focalLength * 0.5] : [0, 0, -1e5]));
-dimLbl(() => `f/${fNum()} = ${nominalF()} ÷ ${scope.aperture}`, () => [scope.focus[1] + (scope.exitAxis[1] ? -60 : scope.aperture * 0.18 + 10), 0, scope.focus[0] + (scope.exitAxis[1] ? 0 : Math.min(60, scope.focalLength * 0.15))]);
-dimLbl(() => (scope.field ? `Field of view ${scope.field[0].toFixed(2)}° × ${scope.field[1].toFixed(2)}°` : ''), () => (scope.field ? [Math.max(scope.aperture / 2, 20) + 30, 0, scope.uAperture + 230] : [0, 0, -1e5]));
+dimLbl(() => `f/${fNum()} = ${nominalF()} ÷ ${scope.aperture}`, () => (scope.exitAxis[1] ? [scope.focus[1], 0, scope.focus[0] - 90] : [scope.rTube * 0.7, 0, scope.focus[0] + Math.min(60, scope.focalLength * 0.15)]));
+dimLbl(() => (scope.field ? `Field of view ${scope.field[0].toFixed(2)}° × ${scope.field[1].toFixed(2)}°` : ''), () => (scope.field ? [Math.max(scope.aperture / 2, 20) + 30, 0, scope.uAperture + 120] : [0, 0, -1e5]));
 
 // ---------- interface ----------
 function updateScopeUI() {
@@ -964,7 +967,7 @@ function initUI() {
   $('place').innerHTML = '<option value="">Choose a place…</option>' + PLACES.map(([n, la, lo], i) => `<option value="${i}">${n} (${la.toFixed(2)}, ${lo.toFixed(2)})</option>`).join('');
   $('ladder').insertAdjacentHTML('afterbegin', STOPS.map((s) => `<button type="button" data-stop="${s.id}"><span>${s.name}</span><small>${s.hint}</small></button>`).join(''));
   $('ladder').addEventListener('click', (e) => { const b = e.target.closest('button[data-stop]'); if (b) goTo(b.dataset.stop); });
-  $('modeEye').addEventListener('click', () => (state.mode === 'eye' ? goTo('site') : standHere(180, 25)));
+  $('modeEye').addEventListener('click', () => (state.mode === 'eye' ? goTo('site') : standHere(0, 25)));
   $('speed').addEventListener('change', (e) => { state.speed = +e.target.value; syncControls(); });
   $('playPause').addEventListener('click', () => { state.speed = state.speed ? 0 : (state.lastSpeed || 60); if (state.speed) state.lastSpeed = state.speed; syncControls(); });
   $('now').addEventListener('click', () => { state.time = Date.now(); });
@@ -1044,12 +1047,19 @@ function zoomBy(dL) {
   else state.cam.L = clamp(state.cam.L + dL, LM - 2.8, 3.3);
 }
 
+// Centre the scene in the part of the screen the panels leave uncovered.
 function resize() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   renderer.setSize(w, h, false);
   camera.aspect = bgCamera.aspect = w / h;
+  const panel = $('panel').getBoundingClientRect(), ladder = $('ladder').getBoundingClientRect();
+  let dx = 0, dy = 0;
+  if (innerWidth > 860) dx = (panel.right - (w - ladder.left)) / 2;
+  else dy = (h - panel.top - $('timebar').getBoundingClientRect().bottom) / 2;
+  for (const c of [camera, bgCamera]) c.setViewOffset(w, h, -dx, dy, w, h);
 }
 new ResizeObserver(resize).observe(canvas);
+new ResizeObserver(resize).observe($('panel'));
 
 // ---------- lessons ----------
 // Each lesson sets up the scene, then explains what to watch.
@@ -1083,11 +1093,11 @@ const LESSONS = [
     body: `<p>Zoom in to your site and Earth looks flat. You can only see the half of the sky above your <b class="c-hor">horizon</b>.</p><p><b>Altitude</b> is the angle above the horizon: 0° at the horizon, 90° straight up at the <b>zenith</b>. <b>Azimuth</b> is the compass bearing, measured from north through east: 90° is east, 180° south, 270° west.</p><p>The green grid is this <b>alt-az</b> system. It is fixed to you, not the stars, so a star’s altitude and azimuth keep changing through the night. Watch the numbers at the bottom of the screen.</p>`,
   },
   {
-    title: 'The meridian', eye: [180, 28], speed: 600, layers: { eq: false, ecl: true, hor: true, mer: true },
+    title: 'The meridian', eye: [0, 28], speed: 600, layers: { eq: false, ecl: true, hor: true, mer: true },
     body: `<p>You are now standing next to the telescope, facing south. The pink <b class="c-mer">meridian</b> runs from due north on the horizon, up through the zenith, and down to due south.</p><p>Every star crosses it once a day. At that moment it <b>transits</b>: it is at its highest. The <b>hour angle</b> (HA) is how long ago a star crossed the meridian. <b>Local sidereal time</b> (LST) is the RA that is on the meridian right now, so HA = LST − RA.</p><p>Drag to look around; scroll to zoom.</p>`,
   },
   {
-    title: 'The sky turns around the pole', eye: [0, 35], speed: 3600, target: 'Polaris', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
+    title: 'The sky turns around the pole', eye: [180, 35], speed: 3600, target: 'Polaris', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
     body: `<p>Face north and the sky turns around the <b class="c-eq">north celestial pole</b>, less than a degree from Polaris. The pole’s altitude always equals your latitude: <b id="lessonLat"></b> here.</p><p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Change your latitude under Controls to see the effect: at the equator the pole sits on the horizon, and at the North Pole it is overhead.</p>`,
   },
   {
@@ -1161,4 +1171,5 @@ const startLesson = /^#lesson(\d+)$/.exec(location.hash);
 showLesson(startLesson ? +startLesson[1] - 1 : 0);
 if (!startLesson) state.cam = { L: 2.85, yaw: 0.6, pitch: 28 * D2R };
 else if (anim) anim.t = 0.999;
+window.__ote = { state, sky, scopeGroup, axisB, THREE, scene, ground, earth, camera };
 requestAnimationFrame(frame);
