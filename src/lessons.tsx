@@ -194,6 +194,19 @@ export const LESSONS: Lesson[] = [
   },
 ];
 
+// The step's target for a hemisphere: south of the equator, whichever of its southern stars stands highest.
+function lessonTarget(l: Lesson, scene: SceneApi, south: boolean) {
+  const alt = (name: string) => {
+    const [, ra, dec] = TARGETS.find((t) => t[0] === name)!;
+    return horizontal(ra! * D2R, dec! * D2R, scene.getTime(), settings.get().lat, settings.get().lon).alt;
+  };
+  const target = (south && l.southTarget?.reduce((a, b) => (alt(b) > alt(a) ? b : a))) || l.target;
+  return target ? TARGETS.findIndex((t) => t[0] === target) : undefined;
+}
+
+// Eye views face the way a northern observer would; in the south the pole and the equator swap sides.
+const standFor = (eye: [number, number], scene: SceneApi, south: boolean) => scene.standHere((eye[0] + (south ? 180 : 0)) % 360, eye[1]);
+
 export function applyLesson(i: number, scene: SceneApi) {
   const l = LESSONS[i], south = settings.get().lat < 0;
   const patch: Partial<Settings> = { lesson: i, speed: l.speed };
@@ -201,17 +214,27 @@ export function applyLesson(i: number, scene: SceneApi) {
   if (l.layers) patch.layers = { ...settings.get().layers, ...l.layers };
   if (l.mountMode) patch.mountMode = l.mountMode;
   if (l.tracking !== undefined) patch.tracking = l.tracking;
-  const alt = (name: string) => {
-    const [, ra, dec] = TARGETS.find((t) => t[0] === name)!;
-    return horizontal(ra! * D2R, dec! * D2R, scene.getTime(), settings.get().lat, settings.get().lon).alt;
-  };
-  const target = (south && l.southTarget?.reduce((a, b) => (alt(b) > alt(a) ? b : a))) || l.target;
-  if (target) patch.target = TARGETS.findIndex((t) => t[0] === target);
+  const target = lessonTarget(l, scene, south);
+  if (target !== undefined) patch.target = target;
   if (l.telescope) patch.telescope = l.telescope;
   if (l.corrected !== undefined) patch.corrected = l.corrected;
   settings.set(patch);
   if (l.view === 'meridianSlice') scene.faceSiteMeridian();
-  // Eye views face the way a northern observer would; in the south the pole and the equator swap sides.
-  else if ('eye' in l.view) scene.standHere((l.view.eye[0] + (south ? 180 : 0)) % 360, l.view.eye[1]);
+  else if ('eye' in l.view) standFor(l.view.eye, scene, south);
   else scene.goTo(l.view.stop, { yaw: l.view.yaw, pitch: l.view.pitch });
+}
+
+// Re-aims the open step when the place crosses the equator, so its view and target agree with its text. Only
+// the step's own target and eye view change, and only while the user still has them; within a hemisphere
+// nothing moves, so a dragged view stays put. Returns the unsubscribe function.
+export function followHemisphere(scene: SceneApi) {
+  let south = settings.get().lat < 0;
+  return settings.subscribe(() => {
+    const s = settings.get(), l = LESSONS[s.lesson];
+    if (s.lat < 0 === south) return;
+    south = s.lat < 0;
+    const own = [l.target, ...(l.southTarget ?? [])];
+    if (l.southTarget && own.includes(TARGETS[s.target][0])) settings.set({ target: lessonTarget(l, scene, south) ?? s.target });
+    if (typeof l.view === 'object' && 'eye' in l.view && s.mode === 'eye') standFor(l.view.eye, scene, south);
+  });
 }

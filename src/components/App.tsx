@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createScene, type SceneApi } from '../scene/Scene.ts';
-import { applyLesson, LESSONS } from '../lessons.tsx';
+import { applyLesson, followHemisphere, LESSONS } from '../lessons.tsx';
 import { live, settings } from '../store.ts';
 import { decodeState, encodeState } from '../url.ts';
 import { locate } from '../geo.ts';
@@ -25,9 +25,11 @@ export function App() {
     if (u.view === 'eye') s.standHere();
     else if (u.view) s.goTo(u.view);
     settings.set(u.patch);
+    // From here on, including the browser's location below, crossing the equator re-aims the open step.
+    const unfollow = followHemisphere(s);
     // An address with loc= names its place, so only a plain visit asks the browser where the visitor is.
     if (u.patch.lat === undefined) locate();
-    return s.dispose;
+    return () => { unfollow(); s.dispose(); };
   }, []);
 
   // Keep the address in step, replacing the history entry rather than adding one per change.
