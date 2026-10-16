@@ -590,7 +590,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const outline = () => { ev.beginPath(); if (scope.sensor) ev.rect(cx - tw, cy - th, tw * 2, th * 2); else ev.arc(cx, cy, R, 0, Math.PI * 2); };
     ev.save();
     outline();
-    ev.fillStyle = `rgb(${lerp(3, 40, daylight)},${lerp(5, 70, daylight)},${lerp(12, 120, daylight)})`;
+    ev.fillStyle = `rgb(${lerp(3, 24, daylight)},${lerp(5, 36, daylight)},${lerp(12, 58, daylight)})`;
     ev.fill(); ev.clip();
     const p = V();
     // Inverted image, as through a real telescope: screen x follows +x, screen y follows +y.
@@ -700,13 +700,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     setAlpha(altazGrid, Ly.hor ? w.site : 0);
     setAlpha(horizonLine, Ly.hor ? w.site : 0);
     setAlpha(meridianLine, Ly.mer ? w.site : 0);
-    setAlpha(conLines, Ly.con ? lerp(0.6, 1, w.site) * (1 - 0.6 * daylight) : 0);
+    setAlpha(conLines, Ly.con ? lerp(0.6, 1, w.site) * (1 - 0.3 * daylight) : 0);
     const starMat = bgStars.material as THREE.ShaderMaterial;
-    starMat.uniforms.alpha.value = 1 - 0.55 * daylight;
+    starMat.uniforms.alpha.value = 1 - 0.3 * daylight;
     starMat.uniforms.scale.value = renderer.getPixelRatio() * (s.mode === 'eye' ? clamp(70 / eye.fov, 1, 3) : 1);
     setAlpha(skySun, w.site);
     setAlpha(skyMoon, w.site);
-    renderer.setClearColor(new THREE.Color(0x02030a).lerp(new THREE.Color(0x3d6fae), daylight));
+    // Daytime is only hinted at: a bright blue sky hides the stars, lines and telescope this is all about.
+    renderer.setClearColor(new THREE.Color(0x02030a).lerp(new THREE.Color(0x1e2d47), daylight));
 
     // Scene layer fades
     setAlpha(solarGroup, w.sol);
