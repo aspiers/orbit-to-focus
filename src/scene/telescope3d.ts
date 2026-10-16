@@ -23,8 +23,8 @@ const lathe = (pts: [number, number][], mat: THREE.Material) => {
 
 export interface ScopeModel {
   group: THREE.Group;        // child of axis B, tube along +z, metres
-  optics: THREE.Group;       // millimetres, u along +z, v along +x
-  inner: THREE.Group;        // the optics proper: shown only when looking inside
+  optics: THREE.Group;       // millimetres, u along +z, v along +y
+  inner: THREE.Group;        // the optics proper: shown only when looking inside (the ray slice is the tube's y-z plane)
   ann: THREE.Group;          // dimension lines
   bodyMaterials: THREE.Material[];
   focus: THREE.Object3D;
@@ -82,8 +82,8 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   if (scope.diagonal) {
     const d = new THREE.Mesh(new THREE.CircleGeometry(17, 32), mirror);
     d.scale.set(1, 1.414, 1);
-    d.position.set(scope.diagonal.c[1], 0, scope.diagonal.c[0]);
-    d.lookAt(d.position.clone().add(V(scope.diagonal.n[1], 0, scope.diagonal.n[0])));
+    d.position.set(0, scope.diagonal.c[1], scope.diagonal.c[0]);
+    d.lookAt(d.position.clone().add(V(0, scope.diagonal.n[1], scope.diagonal.n[0])));
     inner.add(d);
   }
   if (scope.corrector) {
@@ -94,26 +94,26 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   if (scope.focuser) {
     const f = scope.focuser;
     const ft = new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r, f.len, 24, 1, true), bodyMat);
-    ft.quaternion.setFromUnitVectors(V(0, 1, 0), V(f.axis[1], 0, f.axis[0]));
-    ft.position.set(f.c[1] + (f.axis[1] * f.len) / 2, 0, f.c[0] + (f.axis[0] * f.len) / 2);
+    ft.quaternion.setFromUnitVectors(V(0, 1, 0), V(0, f.axis[1], f.axis[0]));
+    ft.position.set(0, f.c[1] + (f.axis[1] * f.len) / 2, f.c[0] + (f.axis[0] * f.len) / 2);
     optics.add(ft);
   }
   if (scope.eyepiece) {
-    const e = scope.eyepiece, a = V(e.n[1], 0, e.n[0]);
+    const e = scope.eyepiece, a = V(0, e.n[1], e.n[0]);
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 40, 24, 1, true), black);
     barrel.quaternion.setFromUnitVectors(V(0, 1, 0), a);
-    barrel.position.set(e.c[1], 0, e.c[0]).addScaledVector(a, 8);
+    barrel.position.set(0, e.c[1], e.c[0]).addScaledVector(a, 8);
     const lens = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 3, 24), glass);
     lens.quaternion.copy(barrel.quaternion);
-    lens.position.set(e.c[1], 0, e.c[0]);
+    lens.position.set(0, e.c[1], e.c[0]);
     optics.add(barrel);
     inner.add(lens);
   }
   if (scope.sensor) {
     const [sw, sh] = scope.sensor;
-    const chip = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.6), new THREE.MeshStandardMaterial({ color: 0x5a3fa0, metalness: 0.5, roughness: 0.3, emissive: 0x1a0f3a, transparent: true, opacity: 0.45, depthWrite: false }));
+    const chip = new THREE.Mesh(new THREE.BoxGeometry(sh, sw, 0.6), new THREE.MeshStandardMaterial({ color: 0x5a3fa0, metalness: 0.5, roughness: 0.3, emissive: 0x1a0f3a, transparent: true, opacity: 0.45, depthWrite: false }));
     chip.position.set(0, 0, scope.focus[0] - 0.3);
-    const board = new THREE.Mesh(new THREE.BoxGeometry(sw + 14, sh + 14, 2), new THREE.MeshStandardMaterial({ color: 0x1f5130, transparent: true, opacity: 0.35, depthWrite: false }));
+    const board = new THREE.Mesh(new THREE.BoxGeometry(sh + 14, sw + 14, 2), new THREE.MeshStandardMaterial({ color: 0x1f5130, transparent: true, opacity: 0.35, depthWrite: false }));
     board.position.set(0, 0, scope.focus[0] - 1.8);
     inner.add(chip, board);
   }
@@ -121,7 +121,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   // Dimension lines for aperture and focal length, and the field-of-view wedge set by the sensor.
   const dimMat = lineMat(COLORS.brass, 0.9);
   const seg = (a: [number, number], b: [number, number], m: THREE.Material = dimMat) => {
-    const l = polyline([V(a[0], 0, a[1]), V(b[0], 0, b[1])], m);
+    const l = polyline([V(0, a[0], a[1]), V(0, b[0], b[1])], m);
     l.computeLineDistances();
     ann.add(l);
   };
@@ -152,7 +152,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   inner.add(rays);
 
   const focus = new THREE.Object3D();
-  focus.position.set(scope.focus[1], 0, scope.focus[0]);
+  focus.position.set(0, scope.focus[1], scope.focus[0]);
   optics.add(focus);
 
   return {
@@ -166,7 +166,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
         const c = scope.waves.length > 1 ? WAVE_RGB[ray.wave] : MONO_RGB;
         for (let i = 0; i < ray.pts.length - 1 && n < MAX - 2; i++) {
           for (const p of [ray.pts[i], ray.pts[i + 1]]) {
-            pos.set([p[1], 0, p[0]], n * 3);
+            pos.set([0, p[1], p[0]], n * 3);
             col.set([c[0] * 0.8, c[1] * 0.8, c[2] * 0.8], n * 3);
             n++;
           }
