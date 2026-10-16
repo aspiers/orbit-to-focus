@@ -337,8 +337,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (opts.yaw === undefined && (stop === 'site' || stop === 'scope') && sky.h) yaw = -sky.h.az + 0.2;
     const L = stop === 'optics' ? opticsL() : st.L;
     // Longer journeys take longer, so no stretch of the zoom rushes past.
-    lastCap = speedCap(L);
-    limitSpeed(lastCap);
+    const cap = speedCap(L);
+    if (cap < lastCap) limitSpeed(cap); // only on entering a closer band
+    lastCap = cap;
     anim = { t: 0, g: 0, h: 0, climb: false, dur: clamp(0.9 + 0.32 * Math.abs(L - cam.L), 1.2, 3.4), fromL: cam.L, to: { L, yaw, pitch: (opts.pitch ?? st.pitch) * D2R }, stop };
   }
   // 1 week/s at the telescope is a blur, so each zoom band has a speed limit. It applies on entering the band;
@@ -618,7 +619,10 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     label(text, cls, (v) => { const [x, , z] = pos(); return model.optics.localToWorld(v.set(0, x, z)); }, () => (S().mode === 'eye' || pos() === NOWHERE ? 0 : smooth(W8.opt, 0.6, 1)));
   const fNum = () => (scope.focalLength / scope.aperture).toFixed(1);
   const nominalF = () => scopeInfo.get().nominalFocal;
-  opticsLbl('Starlight', 'l-optics', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
+  // Says how far off axis the star is, and why, so light arriving at an angle isn't a mystery.
+  const offAxisDeg = () => Math.acos(clamp(sky.targetLocal.z, -1, 1)) * R2D;
+  opticsLbl(() => (offAxisDeg() < 0.05 ? 'Starlight' : `Starlight ${offAxisDeg().toFixed(1)}° off axis${S().tracking ? '' : ' (tracking off: press K)'}`),
+    'l-optics', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
   opticsLbl('Focus', 'l-optics', () => [scope.focus[1], 0, scope.focus[0]]);
   opticsLbl(() => (scope.type === 'petzval' ? 'Front lens group' : 'Objective lens'), 'l-optics', () => (scope.lens ? [scope.aperture * 0.62, 0, scope.lens.top] : NOWHERE));
   opticsLbl('Rear lens group', 'l-optics', () => (scope.type === 'petzval' ? [scope.aperture * 0.5, 0, scope.lens!.surfaces[3].u0] : NOWHERE));
@@ -705,7 +709,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   let prev = S();
   function onSettings(s: Settings, p: Settings) {
     if (s.telescope !== p.telescope || s.corrected !== p.corrected || s.custom !== p.custom) {
-      const wasOptics = W8.opt > 0.5 && s.mode === 'orbit';
+      // Also while flying in, e.g. when an address switches telescope after the flight was sized for another.
+      const wasOptics = (W8.opt > 0.5 || anim?.stop === 'optics') && s.mode === 'orbit';
       buildScope();
       if (wasOptics && cam.L > LM - 1) goTo('optics'); // reframe the resized tube
     }
@@ -856,10 +861,12 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // Near the ground the sky shows the Sun and Moon at their true directions; hide the scale models.
     sun.visible = sunGlow.visible = moon.visible = w.site < 0.5;
 
-    // Starlight inside the telescope, at its real angle to the tube in the drawn slice (the tube's y-z plane).
+    // Starlight inside the telescope at its full angle to the tube. The optics are symmetric about the tube's axis,
+    // so the plane through the axis and the star is drawn turned into the slice you see (the tube's y-z plane);
+    // drawing only the slice's own component hid most of a drift across it.
     model.group.getWorldQuaternion(qInv).invert();
     sky.targetLocal.copy(sky.targetDirW).applyQuaternion(qInv);
-    model.updateRays(Math.atan2(sky.targetLocal.y, sky.targetLocal.z), model.inner.visible ? w.opt * (sky.h.alt > 0 || Ly.ground ? 1 : 0.15) : 0);
+    model.updateRays(Math.atan2(Math.hypot(sky.targetLocal.x, sky.targetLocal.y), sky.targetLocal.z), model.inner.visible ? w.opt * (sky.h.alt > 0 || Ly.ground ? 1 : 0.15) : 0);
 
     renderer.clear();
     renderer.render(bgScene, bgCamera);
