@@ -19,6 +19,8 @@ export function App() {
     // The address reopens a guide, then the view, then whatever was changed since (last, so the time
     // speed limit for the view doesn't override a speed in the address).
     const u = decodeState(location.hash);
+    // A guide step's view and target can depend on the hemisphere, so the place goes in first.
+    if (u.patch.lat !== undefined) settings.set({ lat: u.patch.lat, lon: u.patch.lon });
     applyLesson(Math.min(LESSONS.length - 1, u.lesson ?? 0), s);
     if (u.view === 'eye') s.standHere();
     else if (u.view) s.goTo(u.view);

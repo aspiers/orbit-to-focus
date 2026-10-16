@@ -6,6 +6,8 @@ import type { SceneApi } from './scene/Scene.ts';
 
 const R2D = 180 / Math.PI;
 const Lat = () => <b>{useStore(settings, (s) => (Math.abs(s.lat) * R2D).toFixed(1))}°</b>;
+// Text for the northern hemisphere (and the equator) or the southern one, following the current latitude.
+const NS = ({ n, s }: { n: ReactNode; s: ReactNode }) => <>{useStore(settings, (st) => st.lat < 0) ? s : n}</>;
 
 interface Lesson {
   title: string;
@@ -16,6 +18,7 @@ interface Lesson {
   mountMode?: Settings['mountMode'];
   tracking?: boolean;
   target?: string;
+  southTarget?: string; // replaces target south of the equator
   telescope?: TelescopeType;
   corrected?: boolean;
 }
@@ -80,16 +83,16 @@ export const LESSONS: Lesson[] = [
   {
     title: 'The meridian', view: { eye: [0, 30] }, speed: MIN10, layers: { eq: false, ecl: true, hor: true, mer: true },
     body: <>
-      <p>You are now standing next to the telescope, facing south. The pink <b className="c-mer">meridian</b> runs from due north on the horizon, up through the zenith, and down to due south.</p>
+      <p>You are now standing next to the telescope, facing <NS n="south" s="north" />. The pink <b className="c-mer">meridian</b> runs from due <NS n="north" s="south" /> on the horizon, up through the zenith, and down to due <NS n="south" s="north" />.</p>
       <p>Every star crosses it once a day. At that moment it <b>transits</b>: it is at its highest. The <b>hour angle</b> (HA) is how long ago a star crossed the meridian. <b>Local sidereal time</b> (LST) is the RA that is on the meridian right now, so HA = LST − RA.</p>
       <p>Drag to look around; scroll to zoom.</p>
     </>,
   },
   {
-    title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
+    title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', southTarget: 'Sigma Octantis', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
     body: <>
-      <p>Face north and the sky turns around the <b className="c-eq">north celestial pole</b>, less than a degree from Polaris. The pole’s altitude always equals your latitude: <Lat /> here. The next lessons show why.</p>
-      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place: at the equator the pole sits on the horizon, and at the North Pole it is overhead.</p>
+      <p><NS n={<>Face north and the sky turns around the <b className="c-eq">north celestial pole</b>, less than a degree from Polaris.</>} s={<>Face south and the sky turns around the <b className="c-eq">south celestial pole</b>, about a degree from the faint star Sigma Octantis.</>} /> The pole’s altitude always equals your latitude: <Lat /> here. The next lessons show why.</p>
+      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place: at the equator the pole sits on the horizon, and at the <NS n="North" s="South" /> Pole it is overhead.</p>
     </>,
   },
   {
@@ -104,14 +107,14 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>Time is paused and Earth is cut through along your meridian, seen from the east. Two angles are marked, and they are always equal.</p>
       <p><b>At the centre:</b> your latitude, <Lat />, is the angle between the equator and the line out to you. That line carries on up to your <b className="c-hor">zenith</b>.</p>
-      <p><b>At your feet:</b> your <b className="c-hor">horizon</b> is at right angles to your zenith, just as the equator is at right angles to Earth’s axis. Turn both lines of the first angle through a right angle and you get the second: a line parallel to Earth’s axis rises above your northern horizon by the same angle as your latitude.</p>
-      <p>So to make a mount’s main axis parallel to Earth’s axis, you tilt it up from the northern horizon by your latitude. That is also why Polaris sits at an altitude equal to your latitude.</p>
+      <p><b>At your feet:</b> your <b className="c-hor">horizon</b> is at right angles to your zenith, just as the equator is at right angles to Earth’s axis. Turn both lines of the first angle through a right angle and you get the second: a line parallel to Earth’s axis rises above your <NS n="northern" s="southern" /> horizon by the same angle as your latitude.</p>
+      <p>So to make a mount’s main axis parallel to Earth’s axis, you tilt it up from the <NS n="northern" s="southern" /> horizon by your latitude. That is also why <NS n="Polaris" s="the south celestial pole" /> sits at an altitude equal to your latitude.</p>
     </>,
   },
   {
     title: 'Equatorial mode', view: { stop: 'scope' }, speed: MIN10, mountMode: 'eq', target: 'Vega', tracking: true, telescope: 'seestar', corrected: true, layers: { hor: true, eq: true, mer: true, lat: true },
     body: <>
-      <p>An <b>equatorial</b> mount tilts its main axis (blue) until it is <b>parallel to Earth’s axis</b>, pointing at the celestial pole. Some mounts are built that way; an alt-az telescope like this one can be tilted on a wedge. As the last lesson showed, that axis rises above the northern horizon by your latitude: <Lat />.</p>
+      <p>An <b>equatorial</b> mount tilts its main axis (blue) until it is <b>parallel to Earth’s axis</b>, pointing at the celestial pole. Some mounts are built that way; an alt-az telescope like this one can be tilted on a wedge. As the last lesson showed, that axis rises above the <NS n="northern" s="southern" /> horizon by your latitude: <Lat />.</p>
       <p>Here the turntable becomes the <b>RA axis</b> and the arm the <b>Dec axis</b>. To follow a star only the RA axis turns, at a steady 15° per hour (one turn per sidereal day), undoing Earth’s spin. The Dec axis stays still and the field no longer rotates. That is <b>equatorial mode</b>.</p>
     </>,
   },
@@ -186,17 +189,19 @@ export const LESSONS: Lesson[] = [
 ];
 
 export function applyLesson(i: number, scene: SceneApi) {
-  const l = LESSONS[i];
+  const l = LESSONS[i], south = settings.get().lat < 0;
   const patch: Partial<Settings> = { lesson: i, speed: l.speed };
   if (l.speed) patch.lastSpeed = l.speed;
   if (l.layers) patch.layers = { ...settings.get().layers, ...l.layers };
   if (l.mountMode) patch.mountMode = l.mountMode;
   if (l.tracking !== undefined) patch.tracking = l.tracking;
-  if (l.target) patch.target = TARGETS.findIndex((t) => t[0] === l.target);
+  const target = (south && l.southTarget) || l.target;
+  if (target) patch.target = TARGETS.findIndex((t) => t[0] === target);
   if (l.telescope) patch.telescope = l.telescope;
   if (l.corrected !== undefined) patch.corrected = l.corrected;
   settings.set(patch);
   if (l.view === 'meridianSlice') scene.faceSiteMeridian();
-  else if ('eye' in l.view) scene.standHere(...l.view.eye);
+  // Eye views face the way a northern observer would; in the south the pole and the equator swap sides.
+  else if ('eye' in l.view) scene.standHere((l.view.eye[0] + (south ? 180 : 0)) % 360, l.view.eye[1]);
   else scene.goTo(l.view.stop, { yaw: l.view.yaw, pitch: l.view.pitch });
 }

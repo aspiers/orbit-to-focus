@@ -12,7 +12,9 @@ export const COLORS = { eq: 0x5cc8ff, ecl: 0xff9b45, hor: 0x7fdc8c, mer: 0xff6fa
 
 // RA and Dec in degrees (J2000); null for bodies computed each frame.
 export const TARGETS: [string, number | null, number | null][] = [
-  ['Vega', 279.234, 38.784], ['Polaris', 37.95, 89.264], ['Arcturus', 213.915, 19.182], ['Betelgeuse', 88.793, 7.407],
+  ['Vega', 279.234, 38.784], ['Polaris', 37.95, 89.264],
+  // Sigma Octantis, the nearest naked-eye star to the south celestial pole: SIMBAD (HIP 104382), ICRS J2000.
+  ['Sigma Octantis', 317.195, -88.957], ['Arcturus', 213.915, 19.182], ['Betelgeuse', 88.793, 7.407],
   ['Sirius', 101.287, -16.716], ['Capella', 79.172, 45.998], ['Altair', 297.696, 8.868], ['Deneb', 310.358, 45.28],
   ['Rigel', 78.634, -8.202], ['Spica', 201.298, -11.161], ['Antares', 247.352, -26.432], ['Pleiades (M45)', 56.871, 24.105],
   ['Mizar & Alcor', 200.981, 54.925], ['Orion Nebula (M42)', 83.822, -5.391], ['Andromeda Galaxy (M31)', 10.685, 41.269],

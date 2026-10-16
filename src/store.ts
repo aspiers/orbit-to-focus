@@ -42,7 +42,11 @@ export function createStore<T>(initial: T): Store<T> {
 }
 
 // Selectors must return primitives or objects the store keeps by reference, or React re-renders forever.
-export const useStore = <T, U>(store: Store<T>, select: (s: T) => U) => useSyncExternalStore(store.subscribe, () => select(store.get()));
+// The same snapshot serves server rendering, which the guide's unit tests use.
+export const useStore = <T, U>(store: Store<T>, select: (s: T) => U) => {
+  const get = () => select(store.get());
+  return useSyncExternalStore(store.subscribe, get, get);
+};
 
 const D2R = Math.PI / 180;
 // Greenwich Observatory until the browser says where the visitor is (see geo.ts).

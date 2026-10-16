@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decodeState, encodeState } from '../../src/url.ts';
 import { settings, type Settings } from '../../src/store.ts';
+import { TARGETS } from '../../src/constants.ts';
 
 const defaults = settings.get();
 
@@ -21,7 +22,7 @@ describe('address bar', () => {
   });
 
   it('round-trips a custom target', () => {
-    const custom = 17, s = { ...defaults, target: custom, customRa: Math.PI / 3, customDec: -Math.PI / 8 };
+    const custom = TARGETS.findIndex(([n]) => n === 'Custom'), s = { ...defaults, target: custom, customRa: Math.PI / 3, customDec: -Math.PI / 8 };
     const d = decodeState('#' + encodeState(s, 'eye'));
     expect(d.view).toBe('eye');
     expect(d.patch.target).toBe(custom);
