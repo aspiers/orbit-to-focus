@@ -1,7 +1,7 @@
 import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterAll, describe, expect, it, vi } from 'vitest';
-import { LESSONS, applyLesson } from '../../src/lessons.tsx';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { LESSONS, applyLesson, followHemisphere } from '../../src/lessons.tsx';
 import { settings } from '../../src/store.ts';
 import type { SceneApi } from '../../src/scene/Scene.ts';
 import { GROUPS } from '../../src/components/Shortcuts.tsx';
@@ -48,7 +48,10 @@ const lesson = (title: string) => LESSONS.findIndex((l) => l.title === title);
 const text = (i: number) => renderToStaticMarkup(LESSONS[i].body as ReactElement).replace(/<[^>]+>/g, '');
 // The browser tests' fixed time.
 const FIXED = Date.UTC(2026, 9, 16, 20);
-const fakeScene = (ms = FIXED) => ({ standHere: vi.fn(), goTo: vi.fn(), faceSiteMeridian: vi.fn(), getTime: () => ms });
+// Like the real scene, standing on the ground and going to a stop switch the view mode.
+const fakeScene = (ms = FIXED) => ({
+  standHere: vi.fn(() => settings.set({ mode: 'eye' })), goTo: vi.fn(() => settings.set({ mode: 'orbit' })), faceSiteMeridian: vi.fn(), getTime: () => ms,
+});
 const home = settings.get();
 afterAll(() => settings.set(home));
 
@@ -105,4 +108,72 @@ it.each([['Greenwich', 51.48, 0, 'Vega'], ['Sydney', -33.9, 151.2, 'Canopus']] a
   expect(t).toContain(`so ${star} drifts`);
   expect(t).toContain(`bring ${star} back`);
   if (star !== 'Vega') expect(t).not.toContain('Vega');
+});
+
+describe('changing place with a step open', () => {
+  const GREENWICH = [51.48 * D2R, 0], QUITO = [-0.18 * D2R, -78.47 * D2R], SYDNEY = [-33.87 * D2R, 151.21 * D2R], MAUNA_KEA = [19.82 * D2R, -155.47 * D2R];
+  const moveTo = ([lat, lon]: number[]) => settings.set({ lat, lon });
+  const name = () => TARGETS[settings.get().target][0];
+  let unfollow = () => {};
+  afterEach(() => unfollow());
+  // Opens a step at a place, then follows the hemisphere with only later calls on the scene recorded.
+  const open = (title: string, place: number[]) => {
+    unfollow();
+    moveTo(place);
+    const scene = fakeScene();
+    applyLesson(lesson(title), scene as unknown as SceneApi);
+    vi.clearAllMocks();
+    unfollow = followHemisphere(scene as unknown as SceneApi);
+    return scene;
+  };
+
+  it('turns the pole step round and swaps its pole star on crossing the equator, both ways', () => {
+    const scene = open('The sky turns around the pole', GREENWICH);
+    moveTo(QUITO);
+    expect(scene.standHere).toHaveBeenLastCalledWith(0, 36);
+    expect(name()).toBe('Sigma Octantis');
+    moveTo(GREENWICH);
+    expect(scene.standHere).toHaveBeenLastCalledWith(180, 36);
+    expect(name()).toBe('Polaris');
+    expect(scene.standHere).toHaveBeenCalledTimes(2);
+  });
+
+  it('swaps Vega for a southern star on crossing the equator, both ways, without moving the camera', () => {
+    const scene = open('Alt-az mode', GREENWICH);
+    moveTo(SYDNEY);
+    expect(['Canopus', 'Alpha Centauri']).toContain(name());
+    moveTo(GREENWICH);
+    expect(name()).toBe('Vega');
+    expect(scene.goTo).not.toHaveBeenCalled();
+    expect(scene.standHere).not.toHaveBeenCalled();
+  });
+
+  it('turns the meridian step round on crossing the equator', () => {
+    const scene = open('The meridian', SYDNEY);
+    moveTo(GREENWICH);
+    expect(scene.standHere).toHaveBeenCalledWith(0, 30);
+  });
+
+  it('re-aims nothing while staying in one hemisphere', () => {
+    const scene = open('The sky turns around the pole', GREENWICH);
+    moveTo(MAUNA_KEA);
+    moveTo([0, 0]); // the equator counts as north, as in the text
+    expect(scene.standHere).not.toHaveBeenCalled();
+    expect(name()).toBe('Polaris');
+    const south = open('The sky turns around the pole', SYDNEY);
+    moveTo(QUITO);
+    expect(south.standHere).not.toHaveBeenCalled();
+    expect(name()).toBe('Sigma Octantis');
+  });
+
+  it('keeps a target the user chose and a view they left', () => {
+    open('Alt-az mode', GREENWICH);
+    settings.set({ target: TARGETS.findIndex((t) => t[0] === 'Sirius') });
+    moveTo(SYDNEY);
+    expect(name()).toBe('Sirius');
+    const scene = open('The meridian', GREENWICH);
+    settings.set({ mode: 'orbit' });
+    moveTo(SYDNEY);
+    expect(scene.standHere).not.toHaveBeenCalled();
+  });
 });
