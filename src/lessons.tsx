@@ -43,7 +43,7 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>The <b className="c-moon">Moon</b> orbits Earth every 27.3 days, in the same direction that Earth spins. Its orbit is tilted about 5° to the ecliptic, which is why we don’t get an eclipse every month.</p>
       <p>The Moon turns exactly once per orbit, so the same face (with its dark patches) always points at Earth. The Sun always lights half of it; the <b>phase</b> is how much of that lit half faces us.</p>
-      <p>At 10 minutes per second the Moon creeps; set the speed to 1 day per second in the top bar to watch a whole orbit in under half a minute.</p>
+      <p>At 10 minutes per second the Moon creeps; set the speed to 1 day per second in the top bar (or press <kbd>]</kbd> three times) to watch a whole orbit in under half a minute.</p>
     </>,
   },
   {
@@ -66,7 +66,7 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>Seen from Earth, the Sun creeps once around the sky each year against the background stars. Its path is the <b className="c-ecl">ecliptic</b>: the ecliptic plane seen edge-on from inside.</p>
       <p>It is tilted 23.4° to the celestial equator, for the same reason Earth’s axis is tilted. The Sun crosses the equator at the March and September equinoxes. The Moon and planets always stay close to the ecliptic.</p>
-      <p>Speed time up to 1 day per second to watch the Sun’s dot slide along the orange line.</p>
+      <p>Speed time up to 1 day per second (press <kbd>]</kbd> three times) to watch the Sun’s dot slide along the orange line.</p>
     </>,
   },
   {
@@ -89,7 +89,7 @@ export const LESSONS: Lesson[] = [
     title: 'The sky turns around the pole', view: { eye: [180, 36] }, speed: MIN10, target: 'Polaris', layers: { eq: true, ecl: false, hor: true, mer: true, con: true },
     body: <>
       <p>Face north and the sky turns around the <b className="c-eq">north celestial pole</b>, less than a degree from Polaris. The pole’s altitude always equals your latitude: <Lat /> here. The next lessons show why.</p>
-      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar to see the turning clearly. Change your latitude under Sky &amp; place: at the equator the pole sits on the horizon, and at the North Pole it is overhead.</p>
+      <p>Stars closer to the pole than that never set. They are <b>circumpolar</b>. Set the speed to 1 hour per second in the top bar (or press <kbd>]</kbd>) to see the turning clearly. Change your latitude under Sky &amp; place: at the equator the pole sits on the horizon, and at the North Pole it is overhead.</p>
     </>,
   },
   {
@@ -120,7 +120,7 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>The purple box on the sky is the camera’s <b>field of view</b>: the patch of sky the Seestar is photographing.</p>
       <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The <b>camera view</b> (bottom right) shows the same thing from the sensor’s side.</p>
-      <p>Inside the tube the drift is tiny: a quarter of a degree moves the focus about 1 mm across the sensor. Tick <b>Track the target</b> on the Telescope tab to bring Vega back.</p>
+      <p>Inside the tube the drift is tiny: a quarter of a degree moves the focus about 1 mm across the sensor. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring Vega back.</p>
     </>,
   },
   {
@@ -144,21 +144,21 @@ export const LESSONS: Lesson[] = [
     title: 'Zoom in on the focus', view: { stop: 'focus' }, speed: MIN10, telescope: 'seestar', corrected: false, tracking: true,
     body: <>
       <p>This is the region around the focus, a few millimetres across. With a single plain lens, blue rays (bent most) cross the axis first and red rays last: <b>chromatic aberration</b>. Stars get coloured halos.</p>
-      <p>Tick the ED doublet on the Telescope tab and the colours land together on the sensor.</p>
+      <p>Tick the ED doublet on the Telescope tab (or press <kbd>O</kbd>) and the colours land together on the sensor.</p>
     </>,
   },
   {
     title: 'Other designs: Petzval astrograph', view: { stop: 'optics' }, speed: MIN10, telescope: 'petzval', corrected: true, tracking: true,
     body: <>
       <p>A <b>Petzval</b> is a refractor with two lens groups: a front doublet that gathers the light and a rear doublet partway down the tube. The rear group shortens the focal length, here from 600 mm to about 400 mm (f/5), and corrects the images away from the centre so stars stay sharp right across a large camera sensor.</p>
-      <p>That flat, sharp, fast field is why many astrophotography refractors are Petzvals. This one has an APS-C sensor at its focus. Untick the doublets to see what single lenses would do to the colours.</p>
+      <p>That flat, sharp, fast field is why many astrophotography refractors are Petzvals. This one has an APS-C sensor at its focus. Untick the doublets (or press <kbd>O</kbd>) to see what single lenses would do to the colours.</p>
     </>,
   },
   {
     title: 'Other designs: Newtonian reflector', view: { stop: 'optics' }, speed: MIN10, telescope: 'newtonian', corrected: true, tracking: true,
     body: <>
       <p>A <b>Newtonian</b> collects light with a curved mirror at the bottom of the tube. A small flat mirror at 45° near the top sends the converging light out of the side to an eyepiece. Mirrors reflect every colour the same way, so there is no colour fringing.</p>
-      <p>The main mirror must be a <b>paraboloid</b>. Untick it on the Telescope tab to use a cheaper spherical mirror: the outer rays then focus short of the inner ones (<b>spherical aberration</b>).</p>
+      <p>The main mirror must be a <b>paraboloid</b>. Untick it on the Telescope tab (or press <kbd>O</kbd>) to use a cheaper spherical mirror: the outer rays then focus short of the inner ones (<b>spherical aberration</b>).</p>
     </>,
   },
   {
@@ -172,7 +172,7 @@ export const LESSONS: Lesson[] = [
     title: 'Other designs: Schmidt-Cassegrain', view: { stop: 'optics' }, speed: MIN10, telescope: 'sct', corrected: true, tracking: true,
     body: <>
       <p>A <b>Schmidt-Cassegrain</b> folds a long focal length into a short tube. Light passes a thin <b>corrector plate</b>, bounces off a spherical main mirror, then off a small convex mirror that sends it back through a hole in the main mirror. The small mirror stretches the focal length about five times.</p>
-      <p>Spherical mirrors are easy to make but blur the focus. The corrector plate’s subtle shape pre-bends each ray so they all meet. Untick it to see the blur.</p>
+      <p>Spherical mirrors are easy to make but blur the focus. The corrector plate’s subtle shape pre-bends each ray so they all meet. Untick it (or press <kbd>O</kbd>) to see the blur.</p>
     </>,
   },
   {
