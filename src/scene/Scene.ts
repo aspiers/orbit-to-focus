@@ -607,7 +607,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   label('Sun’s direction', 'l-sun', (v) => shellSun.getWorldPosition(v), () => W8.earth * 0.8);
   label('Earth’s axis', 'l-axis', (v) => tilt3.localToWorld(v.set(0, 1.9 * axisLine.scale.y, 0)), () => Math.max(W8.earth, W8.sol));
   label('You', 'l-brass', (v) => sitePin.getWorldPosition(v), () => Math.max(W8.earth, W8.moon) * 0.95);
-  label('Your horizon', 'l-hor', (v) => siteBig.localToWorld(v.set(1.1, 0, 1.1)), () => (lay('hor') ? W8.earth : 0));
+  // Hidden with the horizon disc while the meridian slice draws its own horizon.
+  label('Your horizon', 'l-hor', (v) => siteBig.localToWorld(v.set(1.1, 0, 1.1)), () => (lay('hor') && !lay('lat') ? W8.earth : 0));
   label('Meridian', 'l-mer', (v) => meridianShell.localToWorld(v.set(0, SHELL_R * 0.7, 0)), () => (lay('mer') ? W8.earth : 0));
   label('Target', 'l-brass', (v) => shellTarget.getWorldPosition(v), () => W8.earth);
   const latLbl = (text: string | (() => string), cls: string, pos: (v: THREE.Vector3) => THREE.Vector3) => label(text, cls, (v) => spin.localToWorld(pos(v)), () => (lay('lat') ? W8.earth : 0));
@@ -626,7 +627,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   skyLbl('Zenith', 'l-hor', siteDir(0, 1, 0), () => (lay('hor') ? 1 : 0));
   skyLbl('Meridian', 'l-mer', siteDir(0, Math.sin(1.1), Math.cos(1.1)), () => (lay('mer') ? 1 : 0));
   skyLbl('North celestial pole', 'l-eq', () => V(0, 1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
-  skyLbl('South celestial pole', 'l-eq', () => V(0, -1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
+  // Below left of the pole, so it misses the label of Sigma Octantis, a degree away and labelled above right.
+  skyLbl('South celestial pole', 'l-eq below-left', () => V(0, -1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
   skyLbl('Celestial equator', 'l-eq', () => { const d = V(0, 0, 1).applyQuaternion(bgSite.quaternion), e = V(0, 1, 0).applyQuaternion(eqToWorld); return d.sub(e.multiplyScalar(d.dot(e))).normalize(); }, () => (lay('eq') ? 1 : 0));
   skyLbl('Ecliptic', 'l-ecl', () => sky.sunDirW.clone().applyAxisAngle(V(0, 1, 0), Math.PI / 2), () => (lay('ecl') ? 1 : 0));
   skyLbl('Sun', 'l-sun', () => sky.sunDirW);
