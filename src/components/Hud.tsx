@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect } from 'react';
 import { SPEEDS, STOPS, TARGETS } from '../constants.ts';
 import { live, scopeInfo, settings, useStore } from '../store.ts';
 import { compassPoint, fmtDeg, fmtHM, fmtSignedHM } from '../format.ts';
@@ -6,16 +6,42 @@ import type { SceneApi } from '../scene/Scene.ts';
 
 const R2D = 180 / Math.PI;
 
+// Speeds are signed: negative runs time backwards. Paused keeps the last speed, sign included, in lastSpeed.
+const RATES = SPEEDS.map(([, v]) => v).filter((v) => v > 0);
+const togglePause = () => settings.set((s) => (s.speed ? { speed: 0, lastSpeed: s.speed } : { speed: s.lastSpeed || 600 }));
+const reverse = () => settings.set((s) => (s.speed ? { speed: -s.speed } : { lastSpeed: -(s.lastSpeed || 600) }));
+// Steps through the speed list, keeping the direction; from paused it starts at the last speed.
+const stepSpeed = (dir: 1 | -1) => settings.set((s) => {
+  const v = s.speed || s.lastSpeed || 600, i = RATES.findIndex((r) => r >= Math.abs(v));
+  return { speed: Math.sign(v) * RATES[Math.min(RATES.length - 1, Math.max(0, (i < 0 ? RATES.length - 1 : i) + dir))] };
+});
+const TIME_KEYS: Record<string, () => void> = { ' ': togglePause, '[': () => stepSpeed(-1), ']': () => stepSpeed(1), '\\': reverse };
+
 export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const clock = useStore(live, (l) => l.clock), lst = useStore(live, (l) => l.lst), sunAlt = useStore(live, (l) => l.sunAlt);
-  const speed = useStore(settings, (s) => s.speed);
+  const speed = useStore(settings, (s) => s.speed), backwards = useStore(settings, (s) => (s.speed || s.lastSpeed) < 0);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const f = TIME_KEYS[e.key];
+      const t = e.target as HTMLElement;
+      // Leave typing alone. Space wins over a focused button (Enter still presses it): clicking anything leaves it focused.
+      if (!f || e.ctrlKey || e.metaKey || e.altKey || t.closest('input, select, textarea')) return;
+      e.preventDefault();
+      f();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
   return (
     <div id="timebar" role="group" aria-label="Time">
       <span id="clock">{clock}</span>
-      <button type="button" onClick={() => settings.set((s) => (s.speed ? { speed: 0, lastSpeed: s.speed } : { speed: s.lastSpeed || 600 }))}>{speed ? 'Pause' : 'Play'}</button>
-      <select id="speed" aria-label="Time speed" value={speed} onChange={(e) => settings.set({ speed: +e.target.value })}>
+      <button type="button" title="Slower ( [ )" aria-label="Slower" onClick={() => stepSpeed(-1)}>«</button>
+      <button type="button" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
+      <button type="button" title="Faster ( ] )" aria-label="Faster" onClick={() => stepSpeed(1)}>»</button>
+      <select id="speed" aria-label="Time speed" value={Math.abs(speed)} onChange={(e) => settings.set((s) => ({ speed: ((s.speed || s.lastSpeed) < 0 ? -1 : 1) * +e.target.value }))}>
         {SPEEDS.map(([n, v]) => <option key={v} value={v}>{n}</option>)}
       </select>
+      <button type="button" title="Run time backwards ( \ )" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
       <button type="button" onClick={() => scene?.setTime(Date.now())}>Now</button>
       <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
       <span className="kv">Sun altitude <b>{fmtDeg(sunAlt, true)}</b></span>

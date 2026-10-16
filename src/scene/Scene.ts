@@ -40,6 +40,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const pts = new Map<number, [number, number]>(); // pointers currently down on the canvas
   // Render at full rate only while something is moving: input, a fly-to, a slew, and the eases that follow.
   let activeUntil = 0;
+  let lastCap = Infinity; // the time speed limit for the previous frame's zoom level
   const wake = () => { activeUntil = performance.now() + 1500; };
   let shift = { dx: 0, dy: 0 };
 
@@ -672,6 +673,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     }
     computeSky(s);
     const w = (W8 = weights(s));
+    // Zooming into a closer band slows time to that band's limit (1 week/s at the telescope is a blur); a faster
+    // speed picked afterwards is left alone.
+    const cap = s.mode === 'eye' || w.L < LM + 4 ? 600 : w.L < 1.15 ? 3600 : w.L < 1.9 ? 86400 : Infinity;
+    if (cap < lastCap && (Math.abs(s.speed) > cap || Math.abs(s.lastSpeed) > cap)) {
+      const lim = (v: number) => Math.sign(v) * Math.min(Math.abs(v), cap);
+      settings.set({ speed: lim(s.speed), lastSpeed: lim(s.lastSpeed) });
+    }
+    lastCap = cap;
 
     // Bodies
     const earthPos = sky.sunDirW.clone().multiplyScalar(-ORBIT_R);
