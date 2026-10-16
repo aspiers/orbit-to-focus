@@ -25,8 +25,10 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
         {SPEEDS.map(([n, v]) => <option key={v} value={v}>{n}</option>)}
       </select>
       <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
-      <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
-      <span className="kv">Sun altitude <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
+      <span className="readings">
+        <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
+        <span className="kv">Sun altitude <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
+      </span>
     </div>
     <TimeDialog scene={scene} />
     </>

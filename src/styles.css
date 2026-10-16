@@ -90,8 +90,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 .explain strong { color: var(--fg); }
 
 /* Right column: time bar, scale ladder */
-#timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: flex-end;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: calc(100% - 348px - 3 * var(--gap)); backdrop-filter: blur(8px); }
+#timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; justify-content: flex-end;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: calc(100% - 348px - 3 * var(--gap)); backdrop-filter: blur(8px); anchor-name: --timebar; }
+/* The two readings wrap together, onto a row of their own, when the bar is too narrow for one row. */
+#timebar .readings { display: flex; gap: 8px; }
 #clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; background: none; border-color: transparent; padding: 6px 4px; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
 dialog { z-index: 10; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); background: #0e1324; color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
 dialog::backdrop { background: rgba(2, 3, 10, 0.6); }
@@ -115,6 +117,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 .kv b.left { text-align: left; }
 #timebar .fixed-w { min-width: 4.6em; } #timebar .fixed-w.wide { min-width: 8.2em; }
 #ladder { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 72px); display: flex; flex-direction: column; gap: 4px; width: 168px; }
+/* Below the time bar however many rows it wraps onto; 72px above is for browsers without anchor positioning. */
+#ladder { top: calc(anchor(--timebar bottom) + 7px); }
 #ladder button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: var(--panel); padding: 6px 10px; border-color: var(--line); position: relative; }
 #ladder button span { font-weight: 500; }
 #ladder button small { color: var(--muted); font: 11px var(--mono); }

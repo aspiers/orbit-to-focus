@@ -121,9 +121,13 @@ test.describe('controls', () => {
     // are below the horizon now, which adds a warning.
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
-    for (const width of [1280, 390]) {
+    for (const width of [1280, 1024, 390]) {
       await page.setViewportSize({ width, height: width > 400 ? 800 : 844 });
       await page.waitForTimeout(300);
+      // A time bar wrapping onto another row once hid it behind the zoom buttons. At 1024 px it still wraps.
+      const [bar, zoom] = await Promise.all(['#timebar', '#ladder'].map((s) => page.locator(s).boundingBox()));
+      expect(bar!.y + bar!.height <= zoom!.y || zoom!.y + zoom!.height <= bar!.y || bar!.x + bar!.width <= zoom!.x,
+        `${width} px: the time bar overlaps the zoom buttons`).toBe(true);
       const start = await corners();
       for (let i = 0; i < await target.locator('option').count(); i++) {
         await target.selectOption({ index: i });
