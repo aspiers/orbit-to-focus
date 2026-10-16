@@ -1,6 +1,7 @@
 tmp/
 node_modules/
 dist/
+.vercel/
 
 # Beads / Dolt files (added by bd init)
 .dolt/

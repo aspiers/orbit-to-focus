@@ -1,0 +1,15 @@
+# An allow list, so a new private file stays out of the upload by default:
+# ignore everything at the root, then re-include what `npm run build` reads.
+# Vercel tests directories without a trailing slash, so a negation ending
+# in "/" would drop the whole directory.
+/*
+!/index.html
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/vite.config.ts
+!/vercel.json
+!/src
+!/tools
+/tools/*
+!/tools/artifact.mjs
