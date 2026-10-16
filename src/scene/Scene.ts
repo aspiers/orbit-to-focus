@@ -697,12 +697,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     sky.upW.set(0, 1, 0).applyQuaternion(site.getWorldQuaternion(qTmp));
     placeCamera(w, s, pull, dt);
     if (anim && anim.t >= 1) { anim = null; wake(); }
-    // Grow the telescope (about 0.45 m tall) as you zoom out so it never shrinks below about 50 px, up to half an
-    // Earth radius tall.
-    const minAngle = (50 * camera.fov * D2R) / Math.max(1, canvas.clientHeight), siteScale = 0.45 * METRE * earthSys.scale.x;
-    const grow = clamp((minAngle * camera.position.distanceTo(anchor.site)) / siteScale, 1, 0.5 / (0.45 * METRE));
-    mountHolder.scale.setScalar(grow);
-    wedgeArc.scale.setScalar(grow);
+    // Grow just the tube, about its centre at your site, as you zoom out so it never shrinks below about 30 px
+    // (up to 0.4 Earth radii long). Directions don't change, so where it points stays true; the mount keeps its
+    // real size.
+    const tubeM = scope.seestarBody ? 0.17 : (scope.u1 - scope.u0) / 1000;
+    const minAngle = (30 * camera.fov * D2R) / Math.max(1, canvas.clientHeight), tubeLen = tubeM * METRE * earthSys.scale.x;
+    // Growth starts beyond about 15 m, so close up the tube still fits its mount.
+    const dist = camera.position.distanceTo(anchor.scope), distM = dist / (METRE * earthSys.scale.x);
+    const grow = clamp((minAngle * dist) / tubeLen, 1, 0.4 / (tubeM * METRE));
+    model.group.scale.setScalar(1 + (grow - 1) * smooth(distM, 15, 60));
     for (const c of [camera, bgCamera]) c.setViewOffset(canvas.clientWidth, canvas.clientHeight, -shift.dx, shift.dy, canvas.clientWidth, canvas.clientHeight);
     bgCamera.quaternion.copy(camera.quaternion);
     bgCamera.fov = camera.fov;
