@@ -1,0 +1,284 @@
+<title>Orbit to Eyepiece</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed 3D view; lesson/controls panel on the left, time bar and scale ladder on the right,
+   live coordinates along the bottom, camera view in the corner. A deliberately dark, single-theme
+   instrument: every overlay colour names a coordinate system and matches its lines in the sky. */
+:root {
+  color-scheme: dark;
+  --bg: #04060d;
+  --panel: rgba(11, 15, 28, 0.88);
+  --panel-solid: #0b0f1c;
+  --line: #222b45;
+  --fg: #e6e8f0;
+  --muted: #98a1bb;
+  --accent: #e0b866;
+  --accent-ink: #1a1408;
+  --eq: #5cc8ff;
+  --ecl: #ff9b45;
+  --hor: #7fdc8c;
+  --mer: #ff6fa8;
+  --moon: #c7c0ff;
+  --sun: #ffd27a;
+  --warn: #ff7a6b;
+  --display: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --gap: 12px;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+#view:active { cursor: grabbing; }
+#view.eye { cursor: crosshair; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl { position: absolute; left: 0; top: 0; white-space: nowrap; font: 500 11px/1.2 var(--body); letter-spacing: 0.02em; padding: 1px 5px; margin: -16px 0 0 6px; opacity: 0; text-shadow: 0 0 4px #000, 0 0 2px #000; will-change: transform; }
+.lbl.big { font-size: 15px; font-weight: 600; margin: -9px 0 0 -5px; }
+.lbl.dim { color: var(--muted); }
+.l-solar { color: #c9d3ee; } .l-eq { color: var(--eq); } .l-ecl { color: var(--ecl); } .l-hor { color: var(--hor); }
+.l-mer { color: var(--mer); } .l-moon { color: var(--moon); } .l-sun { color: var(--sun); } .l-axis { color: #fff; }
+.l-brass { color: var(--accent); } .l-star { color: #dfe4f2; font-weight: 400; } .l-con { color: #8d9ccc; font-style: italic; font-weight: 400; }
+.l-optics { color: var(--fg); font-size: 12px; background: rgba(4, 6, 13, 0.6); border-radius: 3px; }
+.l-dim { color: var(--accent); font: 500 12px/1.2 var(--mono); background: rgba(4, 6, 13, 0.7); border-radius: 3px; }
+.lbl.ring { width: 22px; height: 22px; padding: 0; margin: -11px 0 0 -11px; border: 1.5px solid var(--accent); border-radius: 50%; }
+
+/* Panel */
+#panel { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: max(var(--gap), env(safe-area-inset-left, 0px));
+  width: 348px; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(8px); min-height: 0; }
+#panel header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
+h1 { font: 600 26px/1 var(--display); margin: 0; letter-spacing: 0.01em; flex: 1; text-wrap: balance; }
+h1 span { color: var(--accent); }
+#panelToggle { flex: none; }
+[role=tablist] { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--line); }
+[role=tab] { flex: 1; background: none; border: 0; color: var(--muted); font: 500 13px var(--body); padding: 8px 4px; border-bottom: 2px solid transparent; cursor: pointer; }
+[role=tab][aria-selected=true] { color: var(--fg); border-bottom-color: var(--accent); }
+[role=tabpanel] { overflow-y: auto; padding: 14px; flex: 1; min-height: 0; }
+.step { font: 500 11px var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+h2 { font: 600 24px/1.15 var(--display); margin: 4px 0 10px; text-wrap: balance; }
+#lessonBody p { margin: 0 0 10px; color: #d3d7e4; max-width: 62ch; }
+#lessonBody b { color: var(--fg); font-weight: 600; }
+.c-eq { color: var(--eq) !important; } .c-ecl { color: var(--ecl) !important; } .c-hor { color: var(--hor) !important; } .c-mer { color: var(--mer) !important; } .c-moon { color: var(--moon) !important; }
+.lesson-nav { display: flex; gap: 8px; margin-top: 14px; }
+.lesson-nav button:last-child { margin-left: auto; }
+button, select, input { font: inherit; color: inherit; }
+button { background: #1a2136; border: 1px solid #2d3756; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+fieldset { border: 0; border-top: 1px solid var(--line); margin: 0 0 6px; padding: 10px 0 6px; min-width: 0; }
+fieldset:first-child { border-top: 0; padding-top: 0; }
+legend { font: 500 11px var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0; margin-bottom: 6px; float: left; width: 100%; }
+legend + * { clear: both; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 4px 0; }
+.row > label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+select, input[type=number], input[type=datetime-local] { background: #121828; border: 1px solid #2d3756; border-radius: 6px; padding: 5px 7px; min-width: 0; }
+select { max-width: 100%; }
+input[type=number] { width: 7.5em; font-family: var(--mono); }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+.chip { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+.hint { color: var(--muted); font-size: 12px; margin: 2px 0 6px; }
+.facts { font: 12px/1.5 var(--mono); color: var(--accent); margin: 6px 0; }
+.rate { display: grid; grid-template-columns: 1fr 5.5em; gap: 2px 8px; align-items: center; font-size: 12px; margin-top: 6px; }
+.rate .bar { grid-column: 1 / -1; height: 4px; background: #1a2136; border-radius: 2px; overflow: hidden; }
+.rate .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.rate b { font: 500 12px var(--mono); text-align: right; }
+.slider { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; margin: 6px 0; font-size: 13px; }
+.slider output { font: 500 12px var(--mono); color: var(--accent); }
+.slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.explain { background: #0f1526; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 13px; }
+.explain p { margin: 0 0 8px; color: #d3d7e4; }
+.explain p:last-child { margin: 0; }
+.explain b { color: var(--accent); font-family: var(--mono); font-weight: 500; }
+.explain strong { color: var(--fg); }
+
+/* Right column: time bar, scale ladder */
+#timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: flex-end;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: calc(100% - 348px - 3 * var(--gap)); backdrop-filter: blur(8px); }
+#clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; }
+.kv { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.kv b { font: 500 12px var(--mono); color: var(--fg); }
+#ladder { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 72px); display: flex; flex-direction: column; gap: 4px; width: 168px; }
+#ladder button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: var(--panel); padding: 6px 10px; border-color: var(--line); position: relative; }
+#ladder button span { font-weight: 500; }
+#ladder button small { color: var(--muted); font: 11px var(--mono); }
+#ladder button[aria-current=true] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+#ladder .eye-btn { margin-top: 6px; }
+#scaleNote { font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-top: 6px; }
+
+/* Bottom: readout strip and camera view */
+#readout { position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: calc(348px + 2 * var(--gap)); right: calc(212px + 2 * var(--gap));
+  display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(8px); }
+#readout .name { font: 600 18px var(--display); color: var(--accent); }
+#readout .grp { display: flex; gap: 10px; flex-wrap: wrap; }
+#readout .kv b { font-size: 13px; }
+.k-eq { color: var(--eq); } .k-hor { color: var(--hor); } .k-mer { color: var(--mer); }
+#rHorizon { color: var(--warn); font-size: 12px; }
+#eyebox { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); width: 212px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; backdrop-filter: blur(8px); }
+#eyebox canvas { width: 196px; height: 196px; display: block; }
+#eyeTitle { font: 500 11px var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+#eyeCaption { font-size: 11px; color: var(--muted); }
+#sunWarn { color: var(--warn); font-size: 12px; font-weight: 600; }
+
+body.panel-closed #panel [role=tablist], body.panel-closed #panel [role=tabpanel] { display: none; }
+body.panel-closed #panel { bottom: auto; }
+
+@media (max-width: 860px) {
+  #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 12px 12px 0 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body.panel-closed #panel { height: auto; }
+  #timebar { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); max-width: none; justify-content: flex-start; padding: 6px 8px; }
+  #ladder { top: auto; bottom: calc(46vh + 64px); flex-direction: row; overflow-x: auto; width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); }
+  #ladder button { flex: none; }
+  #ladder button small, #scaleNote { display: none; }
+  #ladder .eye-btn { margin-top: 0; }
+  #readout { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(46vh + 8px); padding: 6px 10px; gap: 2px 10px; }
+  #readout .name { font-size: 15px; }
+  #eyebox { top: 104px; bottom: auto; width: 124px; padding: 6px; }
+  #eyebox canvas { width: 112px; height: 112px; }
+  #eyeCaption { display: none; }
+  body.panel-closed #ladder { bottom: 110px; }
+  body.panel-closed #readout { bottom: 60px; }
+}
+@media (prefers-reduced-motion: reduce) { .rate .bar i { transition: none; } }
+</style>
+
+<canvas id="view" tabindex="0" aria-label="3D view. Drag to orbit, scroll or pinch to zoom, arrow keys to orbit."></canvas>
+<div id="labels" aria-hidden="true"></div>
+
+<aside id="panel" aria-label="Lessons and controls">
+  <header>
+    <h1>Orbit <span>to</span> Eyepiece</h1>
+    <button type="button" id="panelToggle" aria-label="Show or hide the panel">Panel</button>
+  </header>
+  <div role="tablist">
+    <button type="button" role="tab" data-tab="guide" aria-selected="true">Guide</button>
+    <button type="button" role="tab" data-tab="scope" aria-selected="false">Telescope</button>
+    <button type="button" role="tab" data-tab="sky" aria-selected="false">Sky &amp; place</button>
+  </div>
+
+  <section role="tabpanel" id="tab-guide">
+    <div class="step" id="lessonStep"></div>
+    <h2 id="lessonTitle"></h2>
+    <div id="lessonBody"></div>
+    <div class="lesson-nav">
+      <button type="button" id="prev">Back</button>
+      <button type="button" id="replay">Show me again</button>
+      <button type="button" id="next" class="primary">Next</button>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="tab-scope" hidden>
+    <fieldset>
+      <legend>Telescope</legend>
+      <div class="row">
+        <label><input type="radio" name="scope" value="seestar" id="sc-seestar"> Seestar S50 Pro</label>
+        <label><input type="radio" name="scope" value="refractor" id="sc-refractor"> Refractor</label>
+        <label><input type="radio" name="scope" value="newtonian" id="sc-newtonian"> Newtonian</label>
+        <label><input type="radio" name="scope" value="sct" id="sc-sct"> Schmidt-Cassegrain</label>
+      </div>
+      <div class="facts" id="scopeFacts"></div>
+      <div class="row"><label><input type="checkbox" id="corrected"> <span id="corrLabel"></span></label></div>
+      <div class="hint" id="corrHint"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Aperture, focal length &amp; sensor</legend>
+      <div id="lensSliders">
+        <div class="slider"><label for="focal">Focal length</label><output id="focalOut"></output><input type="range" id="focal" min="100" max="1200" step="10"></div>
+        <div class="slider"><label for="aperture">Aperture (lens diameter)</label><output id="apertureOut"></output><input type="range" id="aperture" min="20" max="200" step="1"></div>
+        <div class="row"><label for="sensorPreset">Sensor</label><select id="sensorPreset"></select></div>
+        <div class="slider"><label for="sensorSize">Sensor diagonal</label><output id="sensorOut"></output><input type="range" id="sensorSize" min="4" max="44" step="0.1"></div>
+      </div>
+      <div class="explain" id="explain" aria-live="polite"></div>
+      <button type="button" id="resetLens">Back to the Seestar S50 Pro</button>
+    </fieldset>
+    <fieldset>
+      <legend>Point at</legend>
+      <div class="row"><select id="target" aria-label="Target"></select></div>
+      <div class="row" id="customBox" hidden>
+        <label>RA (hours) <input type="number" id="customRa" min="0" max="24" step="0.1" value="0"></label>
+        <label>Dec (°) <input type="number" id="customDec" min="-90" max="90" step="0.5" value="0"></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Mount</legend>
+      <div class="row">
+        <label><input type="radio" name="mount" value="altaz" id="mt-altaz"> Alt-az mode</label>
+        <label><input type="radio" name="mount" value="eq" id="mt-eq"> Equatorial mode (on a wedge)</label>
+      </div>
+      <div class="row"><label><input type="checkbox" id="tracking"> Track the target</label> <span class="kv" id="offAxis"></span></div>
+      <div class="rate">
+        <span id="axisAName"></span><b id="axisARate"></b><span class="bar"><i id="axisABar"></i></span>
+        <span id="axisBName"></span><b id="axisBRate"></b><span class="bar"><i id="axisBBar"></i></span>
+      </div>
+      <p class="hint">Speeds needed to follow the target, in degrees per hour of sky time.</p>
+    </fieldset>
+  </section>
+
+  <section role="tabpanel" id="tab-sky" hidden>
+    <fieldset>
+      <legend>Show</legend>
+      <div class="row"><label><input type="checkbox" id="ly-eq"> <i class="chip" style="background:var(--eq)"></i> Equatorial grid (RA/Dec), celestial equator and poles</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-ecl"> <i class="chip" style="background:var(--ecl)"></i> Ecliptic</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-hor"> <i class="chip" style="background:var(--hor)"></i> Horizon and alt-az grid</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-mer"> <i class="chip" style="background:var(--mer)"></i> Meridian</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-moonOrbit"> <i class="chip" style="background:var(--moon)"></i> Moon&rsquo;s orbit</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-con"> Constellation lines</label> <label><input type="checkbox" id="ly-names"> Names</label> <label><input type="checkbox" id="ly-labels"> Labels</label></div>
+      <div class="row"><label><input type="checkbox" id="ly-ground"> See through the ground</label></div>
+    </fieldset>
+    <fieldset>
+      <legend>Where you are</legend>
+      <div class="row">
+        <label>Latitude <input type="number" id="lat" min="-90" max="90" step="0.0001"></label>
+        <label>Longitude <input type="number" id="lon" min="-180" max="180" step="0.0001"></label>
+      </div>
+      <div class="row"><select id="place" aria-label="Choose a place"></select></div>
+      <p class="hint">Positive latitude is north, positive longitude is east.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Date and time</legend>
+      <div class="row"><input type="datetime-local" id="setTime" aria-label="Set date and time (UTC)"> <span class="kv">UTC</span></div>
+    </fieldset>
+    <fieldset>
+      <legend>About</legend>
+      <p class="hint">Positions use low-precision formulas (Sun and Moon to about a degree) and ignore precession. Star data: d3-celestial (Hipparcos to magnitude 6). Coastlines: Natural Earth via world-atlas. The Seestar S50 Pro lens is modelled as a two-element ED doublet with ZWO&rsquo;s published 50 mm aperture and 260 mm focal length; the real lens has four elements.</p>
+    </fieldset>
+  </section>
+</aside>
+
+<div id="timebar" role="group" aria-label="Time">
+  <span id="clock"></span>
+  <button type="button" id="playPause">Pause</button>
+  <select id="speed" aria-label="Time speed"></select>
+  <button type="button" id="now">Now</button>
+  <span class="kv">Sidereal time <b id="lst"></b></span>
+  <span class="kv">Sun altitude <b id="sunAlt"></b></span>
+</div>
+
+<nav id="ladder" aria-label="Zoom to scale">
+  <button type="button" class="eye-btn" id="modeEye" data-stop="eye"><span>Stand here</span><small>look at the sky</small></button>
+  <div id="scaleNote"></div>
+</nav>
+
+<div id="readout" aria-label="Target coordinates">
+  <span class="name" id="rTarget"></span>
+  <span class="grp"><span class="kv k-eq">RA <b id="rRa"></b></span><span class="kv k-eq">Dec <b id="rDec"></b></span></span>
+  <span class="grp"><span class="kv k-mer">Hour angle <b id="rHa"></b></span></span>
+  <span class="grp"><span class="kv k-hor">Altitude <b id="rAlt"></b></span><span class="kv k-hor">Azimuth <b id="rAz"></b></span></span>
+  <span class="kv">Latitude <b id="latLabel"></b></span>
+  <span id="rHorizon" hidden>Below your horizon</span>
+</div>
+
+<div id="eyebox">
+  <div id="eyeTitle">Camera view</div>
+  <canvas id="eyeview" width="392" height="392"></canvas>
+  <div id="eyeCaption"></div>
+  <div id="sunWarn" hidden>The Sun is in view. Never point a telescope at the Sun without a proper solar filter.</div>
+</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
+<script type="module">
+/*APP*/
+</script>

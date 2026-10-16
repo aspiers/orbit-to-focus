@@ -135,25 +135,43 @@ const wall = (u0, u1, v) => ({ type: 'plane', mode: 'absorb', c: [(u0 + u1) / 2,
 const walls = (u0, u1, r) => [wall(u0, u1, r), wall(u0, u1, -r)];
 
 // Builds a telescope. `corrected` switches on the part that removes the design's main aberration.
-export function makeTelescope(type, corrected) {
+export const SEESTAR = { focal: 260, aperture: 50, sensor: SEESTAR_SENSOR_MM };
+const sag = (R, r) => Math.abs(R) - Math.sqrt(R * R - r * r);
+
+// Lens for the Seestar-style camera refractor at any focal length, aperture and sensor size.
+// ZWO's lens is a four-element ED apochromat whose prescription isn't published; this stands in an
+// air-spaced ED doublet bent for minimum spherical aberration at 260 mm (searched with this tracer),
+// scaled to the requested focal length. Thicknesses grow so the glass keeps a real edge.
+function cameraRefractor(t, corrected, { focal, aperture, sensor }) {
+  const k = focal / 260, r = aperture / 2;
+  t.name = focal === SEESTAR.focal && aperture === SEESTAR.aperture ? 'Seestar S50 Pro' : 'Custom camera refractor';
+  t.aperture = aperture; t.waves = ['r', 'g', 'b']; t.color = 0x3a3f4a;
+  t.rTube = Math.max(60, r + 12); t.box = [Math.max(120, aperture + 40), Math.max(140, aperture + 50)];
+  let elems;
+  if (corrected) {
+    const [R1, R2, R3, R4] = [-113.884, 184.209, 153.984, 378.464].map((x) => x * k);
+    const t1 = Math.max(7 * k, sag(R1, r) + sag(R2, r) + 1.5);
+    const gap = Math.max(1 * k, sag(R3, r) - sag(R2, r) + 0.4);
+    elems = [{ R: R1, glass: 'FPL53', gap: t1 }, { R: R2, glass: null, gap }, { R: R3, glass: 'F2', gap: Math.max(3 * k, 2) }, { R: R4, glass: null, gap: 0 }];
+  } else {
+    const R = 268.7 * k;
+    elems = [{ R: -R, glass: 'BK7', gap: 2 * sag(R, r) + 2 }, { R, glass: null, gap: 0 }];
+  }
+  const top = focal + 4;
+  t.optics = lensSurfaces(top, elems.map((e) => ({ ...e, rMax: r + 1 })));
+  t.lens = { top, surfaces: t.optics };
+  t.surfaces = [...t.optics];
+  t.exitAxis = [-1, 0];
+  t.uAperture = top;
+  t.sensor = sensor;
+}
+
+// Builds a telescope. `corrected` switches on the part that removes the design's main aberration.
+// `custom` sets focal length, aperture and sensor size for the Seestar-style camera refractor.
+export function makeTelescope(type, corrected, custom = SEESTAR) {
   const t = { type, corrected, waves: ['g'], parts: [] };
   if (type === 'seestar') {
-    // 50 mm f/5.2. ZWO's lens is a four-element ED apochromat whose prescription isn't published;
-    // this stands in an air-spaced ED doublet with the same aperture and focal length, bent for minimum
-    // spherical aberration (searched with the tracer below).
-    t.name = 'Seestar S50 Pro';
-    t.aperture = 50; t.rTube = 60; t.u0 = -14; t.u1 = 272; t.color = 0x3a3f4a; t.box = [120, 140];
-    t.waves = ['r', 'g', 'b'];
-    const elems = corrected
-      ? [{ R: -113.884, glass: 'FPL53', gap: 7, rMax: 26 }, { R: 184.209, glass: null, gap: 1, rMax: 26 },
-        { R: 153.984, glass: 'F2', gap: 3, rMax: 26 }, { R: 378.464, glass: null, gap: 0, rMax: 26 }]
-      : [{ R: -268.7, glass: 'BK7', gap: 6, rMax: 26 }, { R: 268.7, glass: null, gap: 0, rMax: 26 }];
-    t.optics = lensSurfaces(262, elems);
-    t.lens = { top: 262, surfaces: t.optics };
-    t.surfaces = [...t.optics, ...walls(t.u0, t.u1, t.rTube)];
-    t.exitAxis = [-1, 0];
-    t.uAperture = 262;
-    t.sensor = true;
+    cameraRefractor(t, corrected, custom);
   } else if (type === 'refractor') {
     t.name = 'Refractor';
     t.aperture = 80; t.rTube = 48; t.u0 = 70; t.u1 = 735; t.color = 0xe8e6df;
@@ -196,10 +214,11 @@ export function makeTelescope(type, corrected) {
   findFocus(t);
   if (t.sensor) {
     // A smart telescope has no eyepiece: the image lands on a camera chip at the focus.
-    const half = SEESTAR_SENSOR_MM[0] / 2;
-    t.sensorPlane = { type: 'plane', mode: 'absorb', c: t.focus, n: [1, 0], half };
+    t.u0 = t.focus[0] - 14; t.u1 = t.uAperture + 10;
+    t.surfaces.push(...walls(t.u0, t.u1, t.rTube));
+    t.sensorPlane = { type: 'plane', mode: 'absorb', c: t.focus, n: [1, 0], half: t.sensor[0] / 2 };
     t.surfaces.push(t.sensorPlane);
-    t.field = SEESTAR_SENSOR_MM.map((mm) => 2 * Math.atan(mm / 2 / t.focalLength) * 180 / Math.PI);
+    t.field = t.sensor.map((mm) => 2 * Math.atan(mm / 2 / t.focalLength) * 180 / Math.PI);
     return t;
   }
   const ep = { type: 'plane', mode: 'lens', c: [t.focus[0] + t.exitAxis[0] * EYEPIECE_FL, t.focus[1] + t.exitAxis[1] * EYEPIECE_FL], n: t.exitAxis, half: 14, f: EYEPIECE_FL };
