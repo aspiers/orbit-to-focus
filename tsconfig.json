@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "tools/*.ts", "vite.config.ts"]
+  "include": ["src", "tests", "tools/*.ts", "*.config.ts"]
 }

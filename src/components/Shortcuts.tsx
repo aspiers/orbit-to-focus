@@ -3,7 +3,7 @@ import { STOPS } from '../constants.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import { live, settings, ui, useStore, type LayerId } from '../store.ts';
 import type { SceneApi } from '../scene/Scene.ts';
-import { reverse, stepSpeed, togglePause } from './Hud.tsx';
+import { reverse, stepSpeed, togglePause } from '../time.ts';
 import { Modal } from './Modal.tsx';
 
 interface Shortcut { keys: string[]; label: string; run?: (scene: SceneApi) => void }
@@ -20,7 +20,7 @@ const zoomStep = (scene: SceneApi, dir: 1 | -1) => {
 };
 
 // Entries without `run` are listed for reference only (handled elsewhere, or typed digits).
-const GROUPS: [string, Shortcut[]][] = [
+export const GROUPS: [string, Shortcut[]][] = [
   ['Time', [
     { keys: ['Space'], label: 'Pause or play', run: togglePause },
     { keys: ['['], label: 'Slower', run: () => stepSpeed(-1) },
