@@ -90,9 +90,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 .explain b { color: var(--accent); font-family: var(--mono); font-weight: 500; }
 .explain strong { color: var(--fg); }
 
-/* Right column: time bar, scale ladder */
-#timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; justify-content: flex-end;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; max-width: calc(100% - 348px - 3 * var(--gap)); backdrop-filter: blur(8px); anchor-name: --timebar; }
+/* Right column: time bar, scale ladder. The bar leaves the usual gap beside the panel, whose border makes it 350 px
+   wide. Its spacing is just tight enough for one row at 1280 px and two at 1024. */
+#timebar { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); right: max(var(--gap), env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; box-sizing: border-box; max-width: calc(100% - 350px - 3 * var(--gap)); backdrop-filter: blur(8px); anchor-name: --timebar; }
 /* The two readings wrap together, onto a row of their own, when the bar is too narrow for one row. */
 #timebar .readings { display: flex; gap: 8px; }
 #clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; background: none; border-color: transparent; padding: 6px 4px; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }

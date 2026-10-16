@@ -4,6 +4,19 @@ import { ladder, open } from './helpers.ts';
 const speed = (page: Page) => page.locator('#speed');
 const clock = (page: Page) => page.locator('#clock');
 
+type Box = { left: number; top: number; right: number; bottom: number };
+// The boxes of the elements a selector matches, leaving out hidden ones.
+const boxes = (page: Page, selector: string) => page.locator(selector).evaluateAll((els) => els
+  .map((e) => e.getBoundingClientRect()).filter((r) => r.width && r.height)
+  .map(({ left, top, right, bottom }) => ({ left, top, right, bottom })));
+const fmt = (b: Box) => `[${[b.left, b.top, b.right, b.bottom].map(Math.round).join(', ')}]`;
+const near = (p: Box, q: Box, gap: number) => p.left < q.right + gap && q.left < p.right + gap && p.top < q.bottom + gap && q.top < p.bottom + gap;
+// HUD parts that must keep apart, by at least the gap in px.
+const apart: [string, string, number][] = [
+  ['#timebar', '#ladder > *', 0], // a time bar wrapping onto another row once hid it behind the zoom buttons
+  ['#timebar', '#panel', 12],
+];
+
 test.describe('controls', () => {
   test('the address restores the state on reload', async ({ page }) => {
     await open(page);
@@ -124,13 +137,19 @@ test.describe('controls', () => {
     // are below the horizon now, which adds a warning.
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
+    // The time bar takes one row at 1280 px, two at 1024 and three at 900.
+    for (const [width, height] of [[1280, 800], [1024, 768], [900, 700], [390, 844]]) {
+      await page.setViewportSize({ width, height });
+      await page.waitForTimeout(300);
+      for (const [a, b, gap] of apart) {
+        const [as, bs] = await Promise.all([boxes(page, a), boxes(page, b)]);
+        const hits = as.flatMap((p) => bs.filter((q) => near(p, q, gap)).map((q) => `${fmt(p)} ${fmt(q)}`));
+        expect.soft(hits, `${width} x ${height}: ${a} and ${b} closer than ${gap} px`).toEqual([]);
+      }
+    }
     for (const width of [1280, 1024, 390]) {
       await page.setViewportSize({ width, height: width > 400 ? 800 : 844 });
       await page.waitForTimeout(300);
-      // A time bar wrapping onto another row once hid it behind the zoom buttons. At 1024 px it still wraps.
-      const [bar, zoom] = await Promise.all(['#timebar', '#ladder'].map((s) => page.locator(s).boundingBox()));
-      expect(bar!.y + bar!.height <= zoom!.y || zoom!.y + zoom!.height <= bar!.y || bar!.x + bar!.width <= zoom!.x,
-        `${width} px: the time bar overlaps the zoom buttons`).toBe(true);
       const start = await corners();
       for (let i = 0; i < await target.locator('option').count(); i++) {
         await target.selectOption({ index: i });
