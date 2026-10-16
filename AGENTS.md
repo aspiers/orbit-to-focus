@@ -22,6 +22,15 @@ system down through the Earth, your site and a telescope to its optics. See
 - `npm run build`: typecheck, then a single-file build in `dist/`
   (`dist/orbit-to-focus.html` is the publishable artifact).
 
+## Worktrees
+
+`tools/worktree-setup.sh` makes a new worktree usable: it links the
+gitignored Beads skill installs (`.agents/skills/beads`,
+`.claude/skills/beads`) from the main checkout and runs `npm install`.
+worktrunk's `.config/wt.toml` pre-start hook and Orca's `orca.yaml` call it.
+After a plain `git worktree add`, run `sh tools/worktree-setup.sh` in the
+new worktree. Test changes to it with `sh tools/worktree-setup.test.sh`.
+
 ## Conventions
 
 - Follow `.editorconfig`; no trailing whitespace.

@@ -1,0 +1,8 @@
+# Orca worktree config:
+# https://github.com/stablyai/orca/blob/main/docs/site/content/docs/model/orca-yaml.mdx
+
+scripts:
+  setup: sh tools/worktree-setup.sh
+
+# An agent started before setup finishes would find no node_modules.
+setupAgentStartupPolicy: wait-for-setup

@@ -1,0 +1,6 @@
+# Worktrunk project hooks: https://worktrunk.dev/hook/
+
+# A new worktree has no node_modules, so nothing else works until this runs.
+# pre-start blocks post-start hooks and --execute until it finishes.
+[pre-start]
+setup = "sh tools/worktree-setup.sh"
