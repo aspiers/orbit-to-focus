@@ -161,4 +161,35 @@ test.describe('controls', () => {
       }
     }
   });
+
+  test('on phones the hidden panel can be shown again', async ({ page }) => {
+    await open(page);
+    const tabs = page.locator('#panel [role=tablist]');
+    for (const [width, height] of [[390, 844], [360, 740]]) {
+      await page.setViewportSize({ width, height });
+      await page.getByRole('button', { name: 'Hide' }).click();
+      await expect(tabs).toBeHidden();
+      const show = page.getByRole('button', { name: 'Show' });
+      // The hidden panel once sat at the top of the screen, behind the time bar.
+      const [b] = await boxes(page, '#panel header button[aria-expanded]');
+      expect(b.left >= 0 && b.top >= 0 && b.right <= width && b.bottom <= height, `${width} x ${height}: ${fmt(b)} off screen`).toBe(true);
+      for (const hud of ['#timebar', '#ladder > *', '#readout', '#eyebox']) {
+        const hits = (await boxes(page, hud)).filter((q) => near(b, q, 0)).map(fmt);
+        expect(hits, `${width} x ${height}: the show button ${fmt(b)} under ${hud}`).toEqual([]);
+      }
+      expect(await show.evaluate((e) => {
+        const r = e.getBoundingClientRect();
+        return e.contains(document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2));
+      }), `${width} x ${height}: something covers the show button`).toBe(true);
+      await show.click();
+      await expect(tabs).toBeVisible();
+    }
+    // And from the keyboard.
+    await page.getByRole('button', { name: 'Hide' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(tabs).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Show' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(tabs).toBeVisible();
+  });
 });

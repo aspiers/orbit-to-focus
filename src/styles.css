@@ -156,8 +156,9 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 #panel.closed { bottom: auto; }
 
 @media (max-width: 860px) {
-  #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 12px 12px 0 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  #panel.closed { height: auto; }
+  #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 12px 12px 0 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); anchor-name: --panel; }
+  /* Overrides the desktop bottom: auto, which with top: auto left the hidden panel under the time bar. */
+  #panel.closed { height: auto; bottom: 0; }
   #timebar { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); max-width: none; justify-content: flex-start; padding: 6px 8px; }
   #ladder { top: auto; bottom: calc(46vh + 64px); container-type: normal; flex-direction: row; overflow-x: auto; scrollbar-width: none; width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); }
   #ladder button { flex: none; }
@@ -171,7 +172,9 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #eyeCaption { display: none; }
   body:has(#panel.closed) #ladder { bottom: 110px; }
   body:has(#panel.closed) #readout { bottom: 60px; }
-  /* Above the readout however many rows it wraps onto; the bottoms above are for browsers without anchor positioning. */
+  /* Above the panel however tall the safe area makes it, and the ladder above the readout however many rows it
+     wraps onto; the bottoms above are for browsers without anchor positioning. */
+  #readout, body:has(#panel.closed) #readout { bottom: calc(anchor(--panel top) + 8px); }
   #ladder, body:has(#panel.closed) #ladder { bottom: calc(anchor(--readout top) + 8px); }
 }
 @media (prefers-reduced-motion: reduce) { .rate .bar i { transition: none; } }
