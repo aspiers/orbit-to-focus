@@ -355,7 +355,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   }
   // Looks at the slice through your meridian face-on (from the east), close enough to see the angles.
   function faceSiteMeridian() {
-    const L = 0.58;
+    const L = 0.72; // far enough out for the labels at the ends of the zenith and polar-axis lines
     const qs = siteQuaternion(S(), new THREE.Quaternion());
     const east = V(1, 0, 0).applyQuaternion(qs);
     const local = east.applyQuaternion(qs.slerp(qWorld, fWorldAt(L)).invert());
