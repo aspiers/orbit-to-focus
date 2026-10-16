@@ -324,7 +324,7 @@ export function rayFan(t: Telescope, angle: number, count = 15): Ray[] {
   return rays;
 }
 
-// Spread of the axis crossings of rays across the aperture, for the self-check.
+// Spread of the axis crossings of rays across the aperture, for the tests.
 export function focusSpread(t: Telescope) {
   const lo = t.lens ? 2 : t.type === 'newtonian' ? 26 : 38;
   const xs: number[] = [];
@@ -332,7 +332,7 @@ export function focusSpread(t: Telescope) {
   return Math.max(...xs) - Math.min(...xs);
 }
 
-// Distance between the red and blue foci of a near-axis ray, for the self-check.
+// Distance between the red and blue foci of a near-axis ray, for the tests.
 export function chromaticShift(t: Telescope) {
   const focusU = (w: Wave) => crossing(t.optics, [t.uAperture + 50, 5], [-1, 0], [0, 0], [-1, 0], w).at[0];
   return Math.abs(focusU('r') - focusU('b'));

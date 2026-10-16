@@ -12,7 +12,8 @@ TypeScript + React for the interface, three.js for the scene, built with Vite in
 - `npm run dev` serves it locally with hot reload.
 - `npm run build` type-checks and writes `dist/index.html` (open it directly) and
   `dist/orbit-to-focus.html` (the artifact body).
-- `npm run check` checks the astronomy and optics maths (`tools/selfcheck.ts`).
+- `npm test` runs the unit tests (`tests/unit/`, Vitest) and the browser tests (`tests/e2e/`, Playwright in
+  the system Chromium).
 - `npm run data` regenerates `src/data.ts` from d3-celestial and world-atlas downloads in `tmp/data/`.
 
 Layout: `src/scene/` is the 3D scene (`Scene.ts` orchestrates; models, textures and helpers beside it),
