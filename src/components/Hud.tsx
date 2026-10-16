@@ -19,9 +19,12 @@ export const stepSpeed = (dir: 1 | -1) => settings.set((s) => {
 export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const clock = useStore(live, (l) => l.clock), lst = useStore(live, (l) => l.lst), sunAlt = useStore(live, (l) => l.sunAlt);
   const speed = useStore(settings, (s) => s.speed), backwards = useStore(settings, (s) => (s.speed || s.lastSpeed) < 0);
+  const timeOpen = useStore(ui, (u) => u.dialog === 'time');
+  // The dialog sits outside the bar: the bar's backdrop blur would make it the dialog's positioning frame.
   return (
+    <>
     <div id="timebar" role="group" aria-label="Time">
-      <button type="button" id="clock" title="Set the date and time (T)" onClick={() => ui.set({ dialog: 'time' })}>{clock}</button>
+      <button type="button" id="clock" title="Set the date and time (T)" aria-expanded={timeOpen} onClick={() => ui.set((u) => ({ dialog: u.dialog === 'time' ? null : 'time' }))}>{clock}</button>
       <button type="button" title="Jump to now (N)" onClick={() => scene?.setTime(Date.now())}>Now</button>
       <button type="button" title="Slower ( [ )" aria-label="Slower" onClick={() => stepSpeed(-1)}>«</button>
       <button type="button" className="fixed-w" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
@@ -32,8 +35,9 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
       <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
       <span className="kv">Sun altitude <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
-      <TimeDialog scene={scene} />
     </div>
+    <TimeDialog scene={scene} />
+    </>
   );
 }
 
@@ -44,7 +48,7 @@ function TimeDialog({ scene }: { scene: SceneApi | null }) {
   useEffect(() => { if (open && scene) setDraft(new Date(scene.getTime()).toISOString().slice(0, 16)); }, [open, scene]);
   const close = () => ui.set({ dialog: null });
   return (
-    <Modal open={open} title="Date and time">
+    <Modal open={open} title="Date and time" anchor="#clock">
       <form onSubmit={(e) => { e.preventDefault(); const t = Date.parse(`${draft}:00Z`); if (Number.isFinite(t)) scene?.setTime(t); close(); }}>
         <label>UTC <input type="datetime-local" value={draft} onChange={(e) => setDraft(e.target.value)} required data-autofocus /></label>
         <div className="dialog-buttons">
