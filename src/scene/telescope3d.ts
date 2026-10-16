@@ -33,7 +33,7 @@ export interface ScopeModel {
   bodyMaterials: THREE.Material[];
   skyTextures: THREE.Texture[]; // refresh these when the camera view is redrawn
   focus: THREE.Object3D;
-  updateRays(angle: number, alpha: number): void;
+  updateRays(alpha: number): void;
 }
 
 const WAVE_RGB: Record<Wave, [number, number, number]> = { r: [1, 0.3, 0.25], g: [0.75, 1, 0.35], b: [0.3, 0.5, 1] };
@@ -176,22 +176,22 @@ export function buildScopeModel(scope: Telescope, img: SkyImage): ScopeModel {
   rays.renderOrder = 1; // after the glass: sorted by distance they swap with the lens frame to frame and flicker
   inner.add(rays);
 
-  let traced = NaN;
+  let traced = false;
   const focus = new THREE.Object3D();
   focus.position.set(0, scope.focus[1], scope.focus[0]);
   optics.add(focus);
 
   return {
     group, optics, inner, ann, bodyMaterials, skyTextures, focus,
-    updateRays(angle, alpha) {
+    updateRays(alpha) {
       rays.visible = alpha > 0.01;
       rayMat.opacity = alpha;
-      // Re-trace only for a visible change: sub-pixel shifts every frame make the dense fan shimmer.
-      if (!rays.visible || Math.abs(angle - traced) < 2e-4) return;
-      traced = angle;
+      if (!rays.visible || traced) return;
+      traced = true;
       const pos = geo.attributes.position.array as Float32Array, col = geo.attributes.color.array as Float32Array;
       let n = 0;
-      for (const ray of rayFan(scope, angle, 15)) {
+      // Light from the centre of the field, so it always runs along the tube; drift shows on the sky and in the camera or eyepiece view.
+      for (const ray of rayFan(scope, 0, 15)) {
         const c = scope.waves.length > 1 ? WAVE_RGB[ray.wave] : MONO_RGB;
         for (let i = 0; i < ray.pts.length - 1 && n < MAX - 2; i++) {
           for (const p of [ray.pts[i], ray.pts[i + 1]]) {

@@ -619,10 +619,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     label(text, cls, (v) => { const [x, , z] = pos(); return model.optics.localToWorld(v.set(0, x, z)); }, () => (S().mode === 'eye' || pos() === NOWHERE ? 0 : smooth(W8.opt, 0.6, 1)));
   const fNum = () => (scope.focalLength / scope.aperture).toFixed(1);
   const nominalF = () => scopeInfo.get().nominalFocal;
-  // Says how far off axis the star is, and why, so light arriving at an angle isn't a mystery.
-  const offAxisDeg = () => Math.acos(clamp(sky.targetLocal.z, -1, 1)) * R2D;
-  opticsLbl(() => (offAxisDeg() < 0.05 ? 'Starlight' : `Starlight ${offAxisDeg().toFixed(1)}° off axis${S().tracking ? '' : ' (tracking off: press K)'}`),
-    'l-optics', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
+  opticsLbl('Starlight', 'l-optics', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
   opticsLbl('Focus', 'l-optics', () => [scope.focus[1], 0, scope.focus[0]]);
   opticsLbl(() => (scope.type === 'petzval' ? 'Front lens group' : 'Objective lens'), 'l-optics', () => (scope.lens ? [scope.aperture * 0.62, 0, scope.lens.top] : NOWHERE));
   opticsLbl('Rear lens group', 'l-optics', () => (scope.type === 'petzval' ? [scope.aperture * 0.5, 0, scope.lens!.surfaces[3].u0] : NOWHERE));
@@ -861,12 +858,10 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // Near the ground the sky shows the Sun and Moon at their true directions; hide the scale models.
     sun.visible = sunGlow.visible = moon.visible = w.site < 0.5;
 
-    // Starlight inside the telescope at its full angle to the tube. The optics are symmetric about the tube's axis,
-    // so the plane through the axis and the star is drawn turned into the slice you see (the tube's y-z plane);
-    // drawing only the slice's own component hid most of a drift across it.
+    // The target in the tube's frame, for the panel's off-axis readout.
     model.group.getWorldQuaternion(qInv).invert();
     sky.targetLocal.copy(sky.targetDirW).applyQuaternion(qInv);
-    model.updateRays(Math.atan2(Math.hypot(sky.targetLocal.x, sky.targetLocal.y), sky.targetLocal.z), model.inner.visible ? w.opt * (sky.h.alt > 0 || Ly.ground ? 1 : 0.15) : 0);
+    model.updateRays(model.inner.visible ? w.opt * (sky.h.alt > 0 || Ly.ground ? 1 : 0.15) : 0);
 
     renderer.clear();
     renderer.render(bgScene, bgCamera);

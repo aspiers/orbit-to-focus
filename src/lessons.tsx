@@ -118,9 +118,9 @@ export const LESSONS: Lesson[] = [
   {
     title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', telescope: 'seestar', corrected: true, layers: { lat: false },
     body: <>
-      <p>The purple box on the sky is the camera’s <b>field of view</b>: the patch of sky the telescope’s camera is photographing.</p>
-      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The <b>camera view</b> (bottom right) shows the same thing from the sensor’s side.</p>
-      <p>Inside the tube the drift is tiny: a quarter of a degree moves the focus about 1 mm across the sensor. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring Vega back.</p>
+      <p>The purple box on the sky is the telescope’s <b>field of view</b>: the patch of sky it shows you.</p>
+      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The camera or eyepiece view (bottom right) shows the same thing through the telescope.</p>
+      <p>The light drawn inside the tube comes from the centre of the field, so it always runs along the tube while Vega drifts away from it. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring Vega back.</p>
     </>,
   },
   {
