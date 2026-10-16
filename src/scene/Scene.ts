@@ -616,7 +616,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
 
   // ---------- main loop ----------
   let lastFrame = performance.now(), lastLive = 0, raf = 0;
-  const unsub = settings.subscribe(() => { const s = S(); if (s !== prev) onSettings(s, prev); prev = s; });
+  // prev moves on before the handler runs: the handler can set settings again (goTo does), and must not see
+  // the same change twice.
+  const unsub = settings.subscribe(() => { const s = S(), p = prev; prev = s; if (s !== p) onSettings(s, p); });
   let prev = S();
   function onSettings(s: Settings, p: Settings) {
     if (s.telescope !== p.telescope || s.corrected !== p.corrected || s.custom !== p.custom) {
