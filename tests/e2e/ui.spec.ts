@@ -93,24 +93,43 @@ test.describe('controls', () => {
     await expect(speed(page)).toHaveValue('86400');
   });
 
-  // A number gaining a digit or a button changing its label once nudged everything after it sideways.
+  // A number gaining a digit, a button changing its label or a target with a longer name once nudged everything
+  // after it sideways, or onto another row.
   test('the time bar and readout keep their layout as values change', async ({ page }) => {
     await open(page);
-    const lefts = () => page.locator('#timebar > *, #readout .kv').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left * 10) / 10));
+    const corners = () => page.locator('#timebar > *, #readout .kv').evaluateAll((els) => els.flatMap((e) => {
+      const r = e.getBoundingClientRect();
+      return [r.left, r.top];
+    }));
+    // The furthest any of them moved. Fixed widths in ch still differ from the text's own width by a 64th of a pixel.
+    const moved = async (from: number[]) => Math.max(...(await corners()).map((v, i) => Math.abs(v - from[i])));
     const playPause = page.getByRole('button', { name: /^(Pause|Play)$/ }), direction = page.getByRole('button', { name: /Forwards|Backwards/ });
     await playPause.click();
-    const before = await lefts();
+    const before = await corners();
     await playPause.click();
     await direction.click();
-    expect(await lefts()).toEqual(before);
+    expect(await moved(before)).toBeLessThan(0.5);
     await playPause.click();
-    // Vega at other times: angles with other signs and numbers of digits, azimuth N to NW. (Only the target's
-    // name is allowed to move what follows it.)
+    // Vega at other times: angles with other signs and numbers of digits, azimuth N to NW.
     await page.getByRole('tab', { name: 'Sky & place' }).click();
     for (const when of ['2026-01-01T00:00', '2026-07-01T12:00', '2026-04-09T09:41', '2026-10-17T03:30']) {
       await page.getByLabel('Set date and time in UTC').fill(when);
       await page.waitForTimeout(300); // the readout refreshes 8 times a second
-      expect(await lefts()).toEqual(before);
+      expect(await moved(before)).toBeLessThan(0.5);
+    }
+    // Every target, at desktop and phone widths: the phone's readout wraps onto several rows, and some targets
+    // are below the horizon now, which adds a warning.
+    await page.getByRole('tab', { name: 'Telescope' }).click();
+    const target = page.getByRole('combobox', { name: 'Target', exact: true });
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: width > 400 ? 800 : 844 });
+      await page.waitForTimeout(300);
+      const start = await corners();
+      for (let i = 0; i < await target.locator('option').count(); i++) {
+        await target.selectOption({ index: i });
+        await page.waitForTimeout(300);
+        expect(await moved(start), `${width} px, ${await page.locator('#readout .name').textContent()}`).toBeLessThan(0.5);
+      }
     }
   });
 });

@@ -126,6 +126,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 /* Bottom: readout strip and camera view */
 #readout { position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: calc(348px + 2 * var(--gap)); right: calc(212px + 2 * var(--gap));
   display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(8px); }
+/* The name and horizon warning get a row of their own, so neither moves the values when the target changes. */
+#readout .title { flex-basis: 100%; display: flex; gap: 12px; align-items: baseline; }
 #readout .name { font: 600 18px var(--display); color: var(--accent); }
 #readout .grp { display: flex; gap: 10px; flex-wrap: wrap; }
 #readout .kv b { font-size: 13px; }

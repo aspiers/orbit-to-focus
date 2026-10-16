@@ -83,12 +83,11 @@ export function Readout() {
   const lat = useStore(settings, (s) => s.lat);
   return (
     <div id="readout" aria-label="Target coordinates">
-      <span className="name">{name === 'Custom' ? 'Custom target' : name}</span>
+      <div className="title"><span className="name">{name === 'Custom' ? 'Custom target' : name}</span>{l.alt <= 0 && <span id="rHorizon">Below your horizon</span>}</div>
       <span className="grp"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b className="w6">{fmtDeg(l.dec, true)}</b></span></span>
       <span className="grp"><span className="kv k-mer">Hour angle <b className="w8">{fmtSignedHM(l.ha)}</b></span></span>
       <span className="grp"><span className="kv k-hor">Altitude <b className="w6">{fmtDeg(l.alt, true)}</b></span><span className="kv k-hor">Azimuth <b className="w6">{(l.az * R2D).toFixed(1)}°</b> <b className="w2 left">{compassPoint(l.az)}</b></span></span>
       <span className="kv">Latitude <b className="w5">{Math.abs(lat * R2D).toFixed(1)}°</b> <b>{lat >= 0 ? 'N' : 'S'}</b></span>
-      {l.alt <= 0 && <span id="rHorizon">Below your horizon</span>}
     </div>
   );
 }
