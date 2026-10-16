@@ -404,6 +404,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   }
 
   const tmp = V(), fwd = V(), dT = V();
+  let groundFov = 50; // the ground framing's field of view last frame
   // Turns the camera up just enough that the horizon sits at least `low` of the half-height below centre,
   // so the ground never takes more than about 15% of the screen.
   function keepGroundLow(k: number, low = 0.7) {
@@ -485,6 +486,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const tFocus = 1 - smooth(L, LM - 1.6, LM - 0.8), tSun = smooth(L, 1.9, 2.8);
     // After landing (below about 60 m) it is exactly your site.
     const tGround = clamp(1 - 0.8 * d * landing(L), 0, 1);
+    // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
+    // to show its target star above it. Dragging sideways turns the sky behind it; up and down is limited to
+    // what keeps the ground in the bottom 20% without moving the telescope, and the camera above the ground.
+    const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
+    if (kFrame > 0) {
+      const t = Math.tan((groundFov * D2R) / 2), hi = Math.atan(0.5 * t) - Math.atan(0.55 * t);
+      const lo = Math.asin(clamp((0.1 - mount.anchorHeight) / (d / METRE), -1, 1));
+      cam.pitch += (clamp(cam.pitch, lo, Math.max(lo, hi)) - cam.pitch) * kFrame;
+    }
     const target = anchor.optics.clone().lerp(anchor.focus, tFocus).lerp(anchor.site, fSite);
     target.copy(anchor.earth.clone().lerp(target, tGround)).lerp(V(), tSun);
     frameQ(L, qTmp);
@@ -500,9 +510,6 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       .lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), poleUp).normalize();
     camera.lookAt(target);
     camera.fov = 50;
-    // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
-    // to show its target star above it.
-    const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
     if (kFrame > 0 && sky.h.alt > -0.05) {
       camera.getWorldDirection(fwd);
       dT.copy(anchor.scope).sub(camera.position).normalize();
@@ -512,12 +519,13 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       const lift = Math.atan(0.5 * Math.tan((fov * D2R) / 2)); // puts the telescope halfway down from the centre
       fwd.lerp(dT.clone().applyAxisAngle(tmp.crossVectors(dT, sky.upW).normalize(), lift), kFrame).normalize();
       camera.fov = lerp(50, fov, kFrame);
+      groundFov = fov;
       camera.up.copy(sky.upW);
       camera.lookAt(tmp.copy(camera.position).add(fwd));
     }
     // Keep a band of sky in view all the way down: high up the horizon may sit near the top of the screen;
     // on the ground it must be in the bottom 15%.
-    keepGroundLow(fSite * (1 - fWorld) * (1 - w.opt) * (1 - fr) * (1 - climbing), lerp(0.7, -0.55, smooth(L, LM + 1.8, LM + 2.6)));
+    keepGroundLow(fSite * (1 - fWorld) * (1 - w.opt) * (1 - fr) * (1 - climbing) * (1 - kFrame), lerp(0.7, -0.55, smooth(L, LM + 1.8, LM + 2.6)));
     camera.near = d * 2e-3; camera.far = Math.max(d * 1e4, 3000);
   }
 
