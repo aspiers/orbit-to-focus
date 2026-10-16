@@ -27,7 +27,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const cam = { L: 2.85, yaw: 0.6, pitch: 28 * D2R };
   const eye = { yaw: 0, pitch: 30 * D2R, fov: 70 };
   const axes = { a: 0, b: 0 };
-  let tilt = 0, slewing = true;
+  let tilt = 0, slewing = true, chasing = false;
   // A fly-to: L moves smoothly in log space; yaw and pitch are pulled toward their goals in the destination frame.
   // A `climb` zooms out over the first 60% of the time and turns over the last 55%, so it doesn't swing round while
   // skimming over the ground.
@@ -307,6 +307,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
         const step = dt * 80 * D2R, da = wrapPi(goal.a - axes.a), db = goal.b - axes.b;
         axes.a += clamp(da, -step, step); axes.b += clamp(db, -step, step);
         if (Math.abs(da) < step && Math.abs(db) < step && tiltDone) slewing = false;
+        // At 6 hours/s and faster the sky can outrun the slew, which then never ends: don't count it as busy.
+        const r = axisRates(s);
+        chasing = slewing && tiltDone && (Math.max(Math.abs(r.a), Math.abs(r.b)) * Math.abs(s.speed)) / 3600 > 80;
       } else Object.assign(axes, goal);
     }
     mount.wedge.rotation.x = tilt;
@@ -727,7 +730,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     raf = requestAnimationFrame(frame);
     const s = S();
     // At most 60 fps (high-refresh screens), 30 fps while only time is running, nothing while paused and idle.
-    const busy = anim || slewing || pts.size > 0 || now < activeUntil;
+    const busy = anim || (slewing && !chasing) || pts.size > 0 || now < activeUntil;
     if (now - lastFrame < (busy ? 14 : 30) || (!busy && s.speed === 0)) return;
     // rAF timestamps can trail performance.now(), so the first step can come out negative.
     const dt = clamp((now - lastFrame) / 1000, 0, 0.1);

@@ -21,16 +21,20 @@ test.describe('the 3D view', () => {
     expect(Math.max(...ms)).toBeLessThan(100);
   });
 
+  // The guide's first step opens at 1 week/s, where the mount's opening slew can never catch its target. That
+  // slew once kept the page drawing at 60 fps for good.
   test('draws nothing while paused and idle, and about 30 fps with only time running', async ({ page }) => {
     await open(page);
-    // At 6 hours/s and faster the mount never catches its target, so the page stays busy (bead ote-m8e).
-    await page.locator('#speed').selectOption({ label: '10 min / s' });
-    await page.waitForTimeout(5000); // the opening fly-to and slew, then the 1.5 s of full-rate frames after them
-    const a = (await last(page)).frame;
-    await page.waitForTimeout(2000);
-    const running = ((await last(page)).frame - a) / 2;
-    expect(running).toBeGreaterThan(20);
-    expect(running).toBeLessThan(40);
+    // The opening fly-to, then the 1.5 s of full-rate frames after each change. At 10 min/s the slew ends.
+    for (const [speed, wait] of [['1 week / s', 5000], ['10 min / s', 2500]] as const) {
+      await page.locator('#speed').selectOption({ label: speed });
+      await page.waitForTimeout(wait);
+      const a = (await last(page)).frame;
+      await page.waitForTimeout(2000);
+      const running = ((await last(page)).frame - a) / 2;
+      expect(running, speed).toBeGreaterThan(20);
+      expect(running, speed).toBeLessThan(40);
+    }
     await pause(page);
     await page.waitForTimeout(2000);
     const b = (await last(page)).frame;
