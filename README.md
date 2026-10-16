@@ -7,6 +7,8 @@ refractor's focal length, aperture and sensor can be set to match your own. Guid
 why a polar axis tilts by your latitude, equatorial mode, tracking, aperture, focal length, f-numbers,
 and other telescope designs (Petzval, refractor, Newtonian, Dobsonian, Schmidt-Cassegrain).
 
+Try it at <https://orbit-to-focus.vercel.app>.
+
 TypeScript + React for the interface, three.js for the scene, built with Vite into one HTML file.
 
 - `npm run dev` serves it locally with hot reload.
