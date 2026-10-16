@@ -36,15 +36,15 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
     <div id="timebar" role="group" aria-label="Time">
       <span id="clock">{clock}</span>
       <button type="button" title="Slower ( [ )" aria-label="Slower" onClick={() => stepSpeed(-1)}>«</button>
-      <button type="button" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
+      <button type="button" className="fixed-w" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
       <button type="button" title="Faster ( ] )" aria-label="Faster" onClick={() => stepSpeed(1)}>»</button>
       <select id="speed" aria-label="Time speed" value={Math.abs(speed)} onChange={(e) => settings.set((s) => ({ speed: ((s.speed || s.lastSpeed) < 0 ? -1 : 1) * +e.target.value }))}>
         {SPEEDS.map(([n, v]) => <option key={v} value={v}>{n}</option>)}
       </select>
-      <button type="button" title="Run time backwards ( \ )" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
+      <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
       <button type="button" onClick={() => scene?.setTime(Date.now())}>Now</button>
       <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
-      <span className="kv">Sun altitude <b>{fmtDeg(sunAlt, true)}</b></span>
+      <span className="kv">Sun altitude <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
     </div>
   );
 }
@@ -81,10 +81,10 @@ export function Readout() {
   return (
     <div id="readout" aria-label="Target coordinates">
       <span className="name">{name === 'Custom' ? 'Custom target' : name}</span>
-      <span className="grp"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b>{fmtDeg(l.dec, true)}</b></span></span>
-      <span className="grp"><span className="kv k-mer">Hour angle <b>{fmtSignedHM(l.ha)}</b></span></span>
-      <span className="grp"><span className="kv k-hor">Altitude <b>{fmtDeg(l.alt, true)}</b></span><span className="kv k-hor">Azimuth <b>{(l.az * R2D).toFixed(1)}° {compassPoint(l.az)}</b></span></span>
-      <span className="kv">Latitude <b>{Math.abs(lat * R2D).toFixed(1)}° {lat >= 0 ? 'N' : 'S'}</b></span>
+      <span className="grp"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b className="w6">{fmtDeg(l.dec, true)}</b></span></span>
+      <span className="grp"><span className="kv k-mer">Hour angle <b className="w8">{fmtSignedHM(l.ha)}</b></span></span>
+      <span className="grp"><span className="kv k-hor">Altitude <b className="w6">{fmtDeg(l.alt, true)}</b></span><span className="kv k-hor">Azimuth <b className="w6">{(l.az * R2D).toFixed(1)}°</b> <b className="w2 left">{compassPoint(l.az)}</b></span></span>
+      <span className="kv">Latitude <b className="w5">{Math.abs(lat * R2D).toFixed(1)}°</b> <b>{lat >= 0 ? 'N' : 'S'}</b></span>
       {l.alt <= 0 && <span id="rHorizon">Below your horizon</span>}
     </div>
   );
