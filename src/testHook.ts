@@ -8,12 +8,13 @@ export interface FrameInfo {
   frame: number; t: number; fov: number;
   pos: [number, number, number]; fwd: [number, number, number]; up: [number, number, number];
   scope: [number, number] | null; // the telescope's centre on screen, CSS pixels from the canvas's top left
+  polar: [number, number, number] | null; // the mount's turntable axis (axis A) at your site: x east, y up, z south
 }
 
 if (import.meta.env.MODE === 'e2e') {
   let backdrop: THREE.Scene | null = null, tube: THREE.Object3D | null = null, frames = 0;
   const log: FrameInfo[] = [];
-  const v = new THREE.Vector3();
+  const v = new THREE.Vector3(), q = new THREE.Quaternion(), qBase = new THREE.Quaternion();
   const arr = (x: THREE.Vector3) => x.toArray() as [number, number, number];
   const inScene = (o: THREE.Object3D | null, root: THREE.Object3D) => { while (o && o !== root) o = o.parent; return !!o; };
   // The tube is the group just before opticsFrame (a bare Object3D) and the pointer line on axis B.
@@ -30,14 +31,17 @@ if (import.meta.env.MODE === 'e2e') {
     if (this === backdrop) return;
     const camera = cam as THREE.PerspectiveCamera, el = renderer.domElement;
     if (!inScene(tube, this)) tube = findTube(this);
-    let scope: [number, number] | null = null;
+    let scope: [number, number] | null = null, polar: [number, number, number] | null = null;
     if (tube) {
       tube.getWorldPosition(v).project(camera);
       if (Math.abs(v.z) <= 1) scope = [((v.x + 1) / 2) * el.clientWidth, ((1 - v.y) / 2) * el.clientHeight];
+      // tube -> axis B -> axis A -> wedge -> the mount's base, which sits square to the site.
+      const axisA = tube.parent?.parent, base = axisA?.parent?.parent;
+      if (axisA && base) polar = arr(v.set(0, 1, 0).applyQuaternion(axisA.getWorldQuaternion(q)).applyQuaternion(base.getWorldQuaternion(qBase).invert()));
     }
     log.push({
       frame: ++frames, t: performance.now(), fov: camera.fov, pos: arr(camera.getWorldPosition(v)),
-      fwd: arr(camera.getWorldDirection(v)), up: arr(v.copy(camera.up)), scope,
+      fwd: arr(camera.getWorldDirection(v)), up: arr(v.copy(camera.up)), scope, polar,
     });
     if (log.length > 2000) log.splice(0, 1000); // tests only look at recent frames
   };

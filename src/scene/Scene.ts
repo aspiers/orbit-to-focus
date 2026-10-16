@@ -135,10 +135,11 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
 
   // Why a polar axis tilts up by your latitude: a slice through the Earth along your meridian.
   // At the centre, latitude is the angle between the equator and you. At your feet the horizon is at right
-  // angles to the vertical, so a line parallel to Earth's axis rises above the northern horizon by the same angle.
+  // angles to the vertical, so a line parallel to Earth's axis rises above the horizon by the same angle, towards
+  // the pole on your side of the equator.
   const latDiagram = new THREE.Group();
   spin.add(latDiagram);
-  const latPts = { centre: V(), site: V() };
+  const latPts = { centre: V(), site: V(), axis: V(), horizon: V() };
   function arcPts(o: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3, r: number) {
     const n = V().crossVectors(a, b).normalize(), ang = a.angleTo(b);
     return Array.from({ length: 33 }, (_, i) => a.clone().applyAxisAngle(n, (ang * i) / 32).multiplyScalar(r).add(o));
@@ -146,22 +147,25 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   function buildLatDiagram(lat: number, lon: number) {
     latDiagram.clear();
     const u = vec(sphToVec(lon, lat)), e = vec(sphToVec(lon, 0)), axis = V(0, 1, 0);
-    const north = V(-Math.sin(lat) * Math.cos(lon), Math.cos(lat), Math.sin(lat) * Math.sin(lon));
+    const k = lat < 0 ? -1 : 1, pole = axis.clone().multiplyScalar(k);
+    const toPole = V(-Math.sin(lat) * Math.cos(lon), Math.cos(lat), Math.sin(lat) * Math.sin(lon)).multiplyScalar(k); // along your horizon
     const seg = (a: THREE.Vector3, b: THREE.Vector3, color: number, op = 0.95) => latDiagram.add(polyline([a, b], lineMat(color, op)));
     latDiagram.add(polyline(circle(1, 128, (t) => e.clone().multiplyScalar(Math.cos(t)).addScaledVector(axis, Math.sin(t))), lineMat(0xc8d4ee, 0.8))); // Earth, cut through
     seg(axis.clone().multiplyScalar(-1.25), axis.clone().multiplyScalar(1.25), 0xffffff, 0.9); // Earth's axis
     seg(V(), e.clone().multiplyScalar(1.7), 0xffd678);                          // equator plane, toward your longitude
     seg(V(), u.clone().multiplyScalar(1.7), COLORS.hor);                        // centre -> you -> zenith
-    seg(u, u.clone().addScaledVector(axis, 1.25), COLORS.eq);                   // the mount's polar axis
-    seg(u.clone().addScaledVector(north, -0.5), u.clone().addScaledVector(north, 1.25), COLORS.hor, 0.7); // your horizon, N-S
+    seg(u, u.clone().addScaledVector(pole, 1.25), COLORS.eq);                   // the mount's polar axis
+    seg(u.clone().addScaledVector(toPole, -0.5), u.clone().addScaledVector(toPole, 1.25), COLORS.hor, 0.7); // your horizon, N-S
     latDiagram.add(polyline(arcPts(V(), e, u, 0.42), lineMat(0xffffff, 1)));
-    latDiagram.add(polyline(arcPts(u, north, axis, 0.42), lineMat(0xffffff, 1)));
+    latDiagram.add(polyline(arcPts(u, toPole, pole, 0.42), lineMat(0xffffff, 1)));
     // Right-angle marks: the equator meets the axis, and the horizon meets the vertical.
     const sq = (o: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3, k = 0.1) =>
       latDiagram.add(polyline([o.clone().addScaledVector(a, k), o.clone().addScaledVector(a, k).addScaledVector(b, k), o.clone().addScaledVector(b, k)], lineMat(0xffffff, 0.8)));
-    sq(V(), e, axis); sq(u, north, u);
+    sq(V(), e, axis); sq(u, toPole, u);
     latPts.centre.copy(e).add(u).normalize().multiplyScalar(0.55);
-    latPts.site.copy(north).add(axis).normalize().multiplyScalar(0.55).add(u);
+    latPts.site.copy(toPole).add(pole).normalize().multiplyScalar(0.55).add(u);
+    latPts.axis.copy(pole).multiplyScalar(1.2).add(u);
+    latPts.horizon.copy(toPole).multiplyScalar(1.2).add(u);
   }
 
   // ---------- the observing site (metres) ----------
@@ -177,13 +181,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   site.add(mountHolder);
   const wedgeArc = new THREE.Group();
   site.add(wedgeArc);
+  const poleSide = (lat: number) => (lat < 0 ? 1 : -1); // the site's z towards the nearer celestial pole (z is south)
   function buildWedgeArc(lat: number, headY: number) {
     wedgeArc.clear();
-    const o = V(0, headY, 0), r = 0.3;
-    const pts = Array.from({ length: 33 }, (_, i) => { const a = (lat * i) / 32; return V(0, Math.sin(a) * r, -Math.cos(a) * r).add(o); });
+    const o = V(0, headY, 0), r = 0.3, z = poleSide(lat), alt = Math.abs(lat);
+    const pts = Array.from({ length: 33 }, (_, i) => { const a = (alt * i) / 32; return V(0, Math.sin(a) * r, z * Math.cos(a) * r).add(o); });
     wedgeArc.add(polyline(pts, lineMat(0xffffff, 1)));
-    wedgeArc.add(polyline([o, o.clone().add(V(0, 0, -r * 1.6))], lineMat(COLORS.hor, 0.9)));
-    wedgeArc.add(polyline([o, o.clone().add(V(0, Math.sin(lat), -Math.cos(lat)).multiplyScalar(r * 1.6))], lineMat(COLORS.eq, 0.9)));
+    wedgeArc.add(polyline([o, o.clone().add(V(0, 0, z * r * 1.6))], lineMat(COLORS.hor, 0.9)));
+    wedgeArc.add(polyline([o, o.clone().add(V(0, Math.sin(alt), z * Math.cos(alt)).multiplyScalar(r * 1.6))], lineMat(COLORS.eq, 0.9)));
   }
   // Camera frame for the side view of the optics: looking at the ray slice (the tube's y-z plane) from the
   // tube's -x side, away from the mount arm, the way you'd look at a telescope from beside it.
@@ -294,11 +299,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     sky.targetDirW.copy(vec(sphToVec(sky.target.ra, sky.target.dec)).applyQuaternion(eqToWorld));
   }
 
-  // Mount axis angles for pointing at the target: (A, B) about the turntable and the arm.
-  const axisAngles = (h: Horizontal, dec: number, s: Settings) => (s.mountMode === 'eq' ? { a: -h.ha, b: -dec } : { a: Math.PI - h.az, b: -h.alt });
+  // Mount axis angles for pointing at the target: (A, B) about the turntable and the arm. South of the equator
+  // the wedge tips the other way, so axis A points at the south celestial pole: that reverses both axes and
+  // turns the arm half a turn round the polar axis.
+  const axisAngles = (h: Horizontal, dec: number, s: Settings) =>
+    s.mountMode !== 'eq' ? { a: Math.PI - h.az, b: -h.alt } : s.lat < 0 ? { a: h.ha + Math.PI, b: dec } : { a: -h.ha, b: -dec };
   function updateMount(dt: number, s: Settings) {
     const goal = axisAngles(sky.h, sky.target.dec, s);
-    const tiltGoal = s.mountMode === 'eq' ? -(Math.PI / 2 - s.lat) : 0;
+    // Tip axis A from the vertical towards the nearer pole until it rises above that horizon by the latitude.
+    const tiltGoal = s.mountMode === 'eq' ? poleSide(s.lat) * (Math.PI / 2 - Math.abs(s.lat)) : 0;
     tilt += clamp(tiltGoal - tilt, -dt * 0.8, dt * 0.8);
     const tiltDone = Math.abs(tiltGoal - tilt) < 1e-4;
     if (s.tracking || slewing) {
@@ -592,6 +601,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   for (const m of seasonMarks) label(m.name, 'l-solar dim', (v) => v.copy(m.p).add(V(0, 6, 0)), () => W8.sol);
   label('Moon', 'l-moon', (v) => moon.getWorldPosition(v), () => Math.max(W8.moon, W8.earth * 0.8));
   label('North celestial pole', 'l-eq', (v) => tilt3.localToWorld(v.set(0, SHELL_R * 1.05, 0)), () => (lay('eq') ? W8.earth : 0));
+  label('South celestial pole', 'l-eq', (v) => tilt3.localToWorld(v.set(0, -SHELL_R * 1.05, 0)), () => (lay('eq') ? W8.earth : 0));
   label('Celestial equator', 'l-eq', (v) => tilt3.localToWorld(v.set(SHELL_R * 0.72, 0, SHELL_R * 0.72)), () => (lay('eq') ? W8.earth : 0));
   label('Ecliptic', 'l-ecl', (v) => earthSys.localToWorld(v.copy(sky.sunDirW).applyAxisAngle(V(0, 1, 0), 1.2).multiplyScalar(SHELL_R)), () => (lay('ecl') ? W8.earth : 0));
   label('Sun’s direction', 'l-sun', (v) => shellSun.getWorldPosition(v), () => W8.earth * 0.8);
@@ -606,9 +616,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   latLbl(latText, 'l-angle', (v) => v.copy(latPts.site));
   latLbl('Equator', 'l-solar', (v) => v.copy(vec(sphToVec(S().lon, 0))).multiplyScalar(1.6));
   latLbl('Zenith (straight up)', 'l-hor', (v) => v.copy(vec(sphToVec(S().lon, S().lat))).multiplyScalar(1.6));
-  latLbl('Mount’s polar axis, parallel to Earth’s axis', 'l-eq', (v) => v.copy(vec(sphToVec(S().lon, S().lat))).add(V(0, 1.2, 0)));
-  latLbl('Horizon, looking north', 'l-hor', (v) => { const s = S(); return v.copy(vec(sphToVec(s.lon, s.lat))).add(V(-Math.sin(s.lat) * Math.cos(s.lon), Math.cos(s.lat), Math.sin(s.lat) * Math.sin(s.lon)).multiplyScalar(1.2)); });
-  label(() => `polar axis tilt = latitude = ${(Math.abs(S().lat) * R2D).toFixed(1)}°`, 'l-angle', (v) => site.localToWorld(v.set(0, mount.wedge.position.y + 0.12, -0.36)), () => (lay('lat') && S().mountMode === 'eq' ? W8.scope * (1 - W8.opt) : 0));
+  latLbl('Mount’s polar axis, parallel to Earth’s axis', 'l-eq', (v) => v.copy(latPts.axis));
+  latLbl(() => `Horizon, looking ${S().lat < 0 ? 'south' : 'north'}`, 'l-hor', (v) => v.copy(latPts.horizon));
+  label(() => `polar axis tilt = latitude = ${(Math.abs(S().lat) * R2D).toFixed(1)}°`, 'l-angle', (v) => site.localToWorld(v.set(0, mount.wedge.position.y + 0.12, poleSide(S().lat) * 0.36)), () => (lay('lat') && S().mountMode === 'eq' ? W8.scope * (1 - W8.opt) : 0));
   const skyLbl = (text: string, cls: string, dir: () => THREE.Vector3, extra = () => 1) =>
     label(text, cls, (v) => v.copy(dir()), () => (W8.site > 0.5 && above(dir()) ? extra() : 0), true);
   const siteDir = (x: number, y: number, z: number) => () => V(x, y, z).normalize().applyQuaternion(bgSite.quaternion);
@@ -616,6 +626,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   skyLbl('Zenith', 'l-hor', siteDir(0, 1, 0), () => (lay('hor') ? 1 : 0));
   skyLbl('Meridian', 'l-mer', siteDir(0, Math.sin(1.1), Math.cos(1.1)), () => (lay('mer') ? 1 : 0));
   skyLbl('North celestial pole', 'l-eq', () => V(0, 1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
+  skyLbl('South celestial pole', 'l-eq', () => V(0, -1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
   skyLbl('Celestial equator', 'l-eq', () => { const d = V(0, 0, 1).applyQuaternion(bgSite.quaternion), e = V(0, 1, 0).applyQuaternion(eqToWorld); return d.sub(e.multiplyScalar(d.dot(e))).normalize(); }, () => (lay('eq') ? 1 : 0));
   skyLbl('Ecliptic', 'l-ecl', () => sky.sunDirW.clone().applyAxisAngle(V(0, 1, 0), Math.PI / 2), () => (lay('ecl') ? 1 : 0));
   skyLbl('Sun', 'l-sun', () => sky.sunDirW);

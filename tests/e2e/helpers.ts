@@ -7,8 +7,8 @@ declare global { interface Window { __otf: { log: FrameInfo[]; last(): FrameInfo
 // run. Only Date is fixed; timers and animation frames run as normal, and the app's own clock moves on from there.
 export const START = new Date('2026-10-16T20:00:00Z');
 
-export async function open(page: Page, hash = '') {
-  await page.clock.setFixedTime(START);
+export async function open(page: Page, hash = '', at = START) {
+  await page.clock.setFixedTime(at);
   await page.goto('/' + hash);
   await page.waitForFunction(() => window.__otf?.last());
 }
