@@ -1,0 +1,40 @@
+// Converts the downloaded catalogues in tmp/data into the compact src/data.js the page embeds.
+// Sources: d3-celestial@0.7.35 (stars to mag 6, constellation lines and names) and world-atlas@2.0.2 (land outlines).
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const topojson = require('../tmp/node_modules/topojson-client');
+const dir = new URL('../tmp/data/', import.meta.url);
+const read = (f) => JSON.parse(readFileSync(new URL(f, dir)));
+const ra = (lon) => +((lon + 360) % 360).toFixed(3);
+const r2 = (x) => +x.toFixed(2);
+
+const names = read('starnames.json');
+const stars = [];
+const named = [];
+for (const f of read('stars.6.json').features) {
+  const [lon, lat] = f.geometry.coordinates;
+  const { mag, bv } = f.properties;
+  stars.push(ra(lon), r2(lat), r2(mag), r2(parseFloat(bv) || 0.6));
+  const n = names[f.id]?.name;
+  if (n && mag < 2.6) named.push([ra(lon), r2(lat), r2(mag), n]);
+}
+
+const lines = [];
+for (const f of read('constellations.lines.json').features)
+  for (const l of f.geometry.coordinates) lines.push(l.flatMap(([lon, lat]) => [ra(lon), r2(lat)]));
+
+const cnames = read('constellations.json').features
+  .filter((f) => +f.properties.rank <= 2)
+  .map((f) => [ra(f.geometry.coordinates[0]), r2(f.geometry.coordinates[1]), f.properties.name]);
+
+const topo = read('land-110m.json');
+const land = topojson.feature(topo, topo.objects.land).features
+  .flatMap((f) => (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates))
+  .flatMap((poly) => poly)
+  .map((ring) => ring.flatMap(([lon, lat]) => [+lon.toFixed(1), +lat.toFixed(1)]));
+
+const out = `const DATA = ${JSON.stringify({ stars, named, lines, cnames, land })};\n`;
+writeFileSync(new URL('../src/data.js', import.meta.url), out);
+console.log(`stars ${stars.length / 4}, named ${named.length}, lines ${lines.length}, cnames ${cnames.length}, land rings ${land.length}, ${out.length} bytes`);
