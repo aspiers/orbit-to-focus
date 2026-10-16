@@ -149,8 +149,10 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   const rayMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const rays = new THREE.LineSegments(geo, rayMat);
   rays.frustumCulled = false;
+  rays.renderOrder = 1; // after the glass: sorted by distance they swap with the lens frame to frame and flicker
   inner.add(rays);
 
+  let traced = NaN;
   const focus = new THREE.Object3D();
   focus.position.set(0, scope.focus[1], scope.focus[0]);
   optics.add(focus);
@@ -159,7 +161,10 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
     group, optics, inner, ann, bodyMaterials, focus,
     updateRays(angle, alpha) {
       rays.visible = alpha > 0.01;
-      if (!rays.visible) return;
+      rayMat.opacity = alpha;
+      // Re-trace only for a visible change: sub-pixel shifts every frame make the dense fan shimmer.
+      if (!rays.visible || Math.abs(angle - traced) < 2e-4) return;
+      traced = angle;
       const pos = geo.attributes.position.array as Float32Array, col = geo.attributes.color.array as Float32Array;
       let n = 0;
       for (const ray of rayFan(scope, angle, 15)) {
@@ -175,7 +180,6 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
       geo.setDrawRange(0, n);
       geo.attributes.position.needsUpdate = true;
       geo.attributes.color.needsUpdate = true;
-      rayMat.opacity = alpha;
     },
   };
 }

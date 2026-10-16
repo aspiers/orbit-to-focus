@@ -116,17 +116,18 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'What tracking does', view: { stop: 'optics' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', telescope: 'seestar', corrected: true, layers: { lat: false },
+    title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', telescope: 'seestar', corrected: true, layers: { lat: false },
     body: <>
-      <p>Tracking is now off and time runs at one minute per second. As Earth turns, the star drifts out of the field: about a quarter of a degree per minute near the celestial equator, less near the pole.</p>
-      <p>Inside the optics, watch the starlight come in at a growing angle and its focus slide sideways across the camera sensor. Tick <b>Track the target</b> on the Telescope tab to bring it back.</p>
+      <p>The purple box on the sky is the camera’s <b>field of view</b>: the patch of sky the Seestar is photographing.</p>
+      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so Vega drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The <b>camera view</b> (bottom right) shows the same thing from the sensor’s side.</p>
+      <p>Inside the tube the drift is tiny: a quarter of a degree moves the focus about 1 mm across the sensor. Tick <b>Track the target</b> on the Telescope tab to bring Vega back.</p>
     </>,
   },
   {
     title: 'Inside the Seestar', view: { stop: 'optics' }, speed: MIN10, telescope: 'seestar', corrected: true, tracking: true,
     body: <>
-      <p>The Seestar is a small <b>refractor</b>: a 50 mm lens at the front bends starlight to a focus 260 mm behind it, right on a camera sensor. There is no eyepiece; you see the sensor’s image on your phone.</p>
-      <p>The real S50 Pro folds that 260 mm path to fit its 170 mm optical unit. It is drawn here straightened out, so you can see the full distance the light travels.</p>
+      <p>The Seestar is a small <b>refractor</b>: a 50 mm lens at the front bends starlight so that it comes to a focus after travelling 260 mm, right on a camera sensor. There is no eyepiece; you see the sensor’s image on your phone.</p>
+      <p>The focal length is the distance the light travels, not how far the sensor is from the lens. The real S50 Pro folds that 260 mm path to fit its 170 mm optical unit, so its sensor sits closer to the lens than 260 mm. Folding doesn’t change the focal length. Here the path is drawn straightened out, so you can see its full length.</p>
       <p>Glass bends blue light more than red, so a single lens focuses each colour at a different distance. Two lenses made of different glasses, one of them extra-low-dispersion (ED) glass, can cancel that. ZWO’s lens has four elements; this model uses two with the same focal length.</p>
     </>,
   },
@@ -134,7 +135,7 @@ export const LESSONS: Lesson[] = [
     title: 'Aperture, focal length and f-number', view: { stop: 'optics' }, speed: MIN10, telescope: 'seestar', corrected: true, tracking: true,
     body: <>
       <p>Three numbers describe the Seestar’s optics, and all three are drawn in gold.</p>
-      <p><b>Aperture</b> (50 mm) is the diameter of the lens: the size of the bucket catching light. <b>Focal length</b> (260 mm) is how far behind the lens the light comes to a focus. The <b>image sensor</b> sits exactly there.</p>
+      <p><b>Aperture</b> (50 mm) is the diameter of the lens: the size of the bucket catching light. <b>Focal length</b> (260 mm) is how far the light travels after the lens before it comes to a focus. The <b>image sensor</b> sits exactly there.</p>
       <p>The <b>f-number</b> is simply focal length ÷ aperture: 260 ÷ 50 = f/5.2. It describes the shape of the cone of light: a low f-number is a short, fat cone that pours more light onto each pixel.</p>
       <p>Open the Telescope tab and drag the sliders: watch the cone, the field of view (dashed purple) and the camera view change.</p>
     </>,

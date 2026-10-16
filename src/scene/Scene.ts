@@ -255,6 +255,10 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   skySun.scale.setScalar(SKY_R * 0.09);
   const skyMoon = new THREE.Mesh(new THREE.SphereGeometry(SKY_R * 0.012, 32, 16), new THREE.MeshLambertMaterial({ color: 0xdedbd2, transparent: true }));
   const bgSunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+  // The camera's field on the sky: what the telescope is capturing right now.
+  const fieldBox = polyline(Array.from({ length: 5 }, () => V()), lineMat(0xc9a0ff, 0.9));
+  fieldBox.frustumCulled = false;
+  bgScene.add(fieldBox);
   bgScene.add(skySun, skyMoon, bgSunLight, bgSunLight.target, new THREE.AmbientLight(0xffffff, 0.04));
 
   // ---------- per-frame astronomy ----------
@@ -460,20 +464,25 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const fromEarth = camera.position.clone().sub(anchor.earth);
     const minR = 1 + (w.opt > 0.5 ? -Infinity : 0.12 * METRE);
     if (fromEarth.length() < minR) camera.position.copy(anchor.earth).add(fromEarth.setLength(minR));
-    // Near the Earth, keep the horizon level: 'up' is your local vertical, even beside the tube.
-    // In the meridian slice, Earth's axis points up the screen so the equator runs left to right.
-    camera.up.set(0, 1, 0).applyQuaternion(qTmp).lerp(sky.upW, 1 - fWorld).lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), fr).normalize();
+    // Near the Earth, keep the horizon level: 'up' is your local vertical. Inside the tube 'up' is the tube's, so
+    // the cut-away stays still on screen while the mount tracks. In the meridian slice, Earth's axis points up
+    // the screen so the equator runs left to right.
+    camera.up.set(0, 1, 0).applyQuaternion(qTmp).lerp(sky.upW, (1 - fWorld) * (1 - w.opt)).lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), fr).normalize();
     camera.lookAt(target);
     camera.fov = 50;
-    // On the ground, frame the telescope and its target star together.
+    // On the ground, keep the telescope still at the bottom centre of the view, and widen the view just enough
+    // to show its target star above it.
     const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
     if (kFrame > 0 && sky.h.alt > -0.05) {
       camera.getWorldDirection(fwd);
       dT.copy(anchor.scope).sub(camera.position).normalize();
-      const bis = dT.clone().add(sky.targetDirW).normalize();
-      const spread = dT.angleTo(sky.targetDirW) * R2D;
-      fwd.lerp(bis, kFrame).normalize();
-      camera.fov = lerp(50, clamp(spread * 1.25 + 14, 50, 100), kFrame);
+      const spread = dT.angleTo(sky.targetDirW);
+      let fov = 50;
+      while (fov < 110 && Math.atan(0.6 * Math.tan((fov * D2R) / 2)) + Math.atan(0.85 * Math.tan((fov * D2R) / 2)) < spread) fov += 2;
+      const lift = Math.atan(0.6 * Math.tan((fov * D2R) / 2)); // puts the telescope 60% of the way down from the centre
+      fwd.lerp(dT.clone().applyAxisAngle(tmp.crossVectors(dT, sky.upW).normalize(), lift), kFrame).normalize();
+      camera.fov = lerp(50, fov, kFrame);
+      camera.up.copy(sky.upW);
       camera.lookAt(tmp.copy(camera.position).add(fwd));
     }
     // Keep a band of sky in view all the way down: high up the horizon may sit near the top of the screen;
@@ -706,6 +715,16 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     starMat.uniforms.scale.value = renderer.getPixelRatio() * (s.mode === 'eye' ? clamp(70 / eye.fov, 1, 3) : 1);
     setAlpha(skySun, w.site);
     setAlpha(skyMoon, w.site);
+    setAlpha(fieldBox, w.site * (1 - w.opt));
+    if (fieldBox.visible) {
+      const f = scope.field ?? [scope.trueField!, scope.trueField!], pos = fieldBox.geometry.attributes.position;
+      model.group.getWorldQuaternion(qTmp);
+      [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].forEach(([a, b], i) => {
+        tmp.set(a * Math.tan((f[0] * D2R) / 2), b * Math.tan((f[1] * D2R) / 2), 1).applyQuaternion(qTmp).setLength(SKY_R * 0.9);
+        pos.setXYZ(i, tmp.x, tmp.y, tmp.z);
+      });
+      pos.needsUpdate = true;
+    }
     // Daytime is only hinted at: a bright blue sky hides the stars, lines and telescope this is all about.
     renderer.setClearColor(new THREE.Color(0x02030a).lerp(new THREE.Color(0x1e2d47), daylight));
 
