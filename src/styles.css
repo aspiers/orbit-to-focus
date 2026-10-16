@@ -1,9 +1,3 @@
-<title>Orbit to Eyepiece</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
 /* Layout: full-bleed 3D view; lesson/controls panel on the left, time bar and scale ladder on the right,
    live coordinates along the bottom, camera view in the corner. A deliberately dark, single-theme
    instrument: every overlay colour names a coordinate system and matches its lines in the sky. */
@@ -29,7 +23,7 @@
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --gap: 12px;
 }
-html, body { height: 100%; }
+html, body, #root { height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); overflow: hidden; }
 #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
 #view:active { cursor: grabbing; }
@@ -51,7 +45,7 @@ body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); over
 #panel header { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
 h1 { font: 600 26px/1 var(--display); margin: 0; letter-spacing: 0.01em; flex: 1; text-wrap: balance; }
 h1 span { color: var(--accent); }
-#panelToggle { flex: none; }
+#panel header button { flex: none; }
 [role=tablist] { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--line); }
 [role=tab] { flex: 1; background: none; border: 0; color: var(--muted); font: 500 13px var(--body); padding: 8px 4px; border-bottom: 2px solid transparent; cursor: pointer; }
 [role=tab][aria-selected=true] { color: var(--fg); border-bottom-color: var(--accent); }
@@ -119,16 +113,17 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 #rHorizon { color: var(--warn); font-size: 12px; }
 #eyebox { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); width: 212px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; backdrop-filter: blur(8px); }
 #eyebox canvas { width: 196px; height: 196px; display: block; }
+.l-angle { color: #fff; font: 600 12px/1.2 var(--mono); background: rgba(4, 6, 13, 0.7); border-radius: 3px; }
 #eyeTitle { font: 500 11px var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
 #eyeCaption { font-size: 11px; color: var(--muted); }
 #sunWarn { color: var(--warn); font-size: 12px; font-weight: 600; }
 
-body.panel-closed #panel [role=tablist], body.panel-closed #panel [role=tabpanel] { display: none; }
-body.panel-closed #panel { bottom: auto; }
+#panel.closed [role=tablist], #panel.closed [role=tabpanel] { display: none; }
+#panel.closed { bottom: auto; }
 
 @media (max-width: 860px) {
   #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 12px 12px 0 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  body.panel-closed #panel { height: auto; }
+  #panel.closed { height: auto; }
   #timebar { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); max-width: none; justify-content: flex-start; padding: 6px 8px; }
   #ladder { top: auto; bottom: calc(46vh + 64px); flex-direction: row; overflow-x: auto; scrollbar-width: none; width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); }
   #ladder button { flex: none; }
@@ -139,146 +134,7 @@ body.panel-closed #panel { bottom: auto; }
   #eyebox { top: 104px; bottom: auto; width: 124px; padding: 6px; }
   #eyebox canvas { width: 112px; height: 112px; }
   #eyeCaption { display: none; }
-  body.panel-closed #ladder { bottom: 110px; }
-  body.panel-closed #readout { bottom: 60px; }
+  body:has(#panel.closed) #ladder { bottom: 110px; }
+  body:has(#panel.closed) #readout { bottom: 60px; }
 }
 @media (prefers-reduced-motion: reduce) { .rate .bar i { transition: none; } }
-</style>
-
-<canvas id="view" tabindex="0" aria-label="3D view. Drag to orbit, scroll or pinch to zoom, arrow keys to orbit."></canvas>
-<div id="labels" aria-hidden="true"></div>
-
-<aside id="panel" aria-label="Lessons and controls">
-  <header>
-    <h1>Orbit <span>to</span> Eyepiece</h1>
-    <button type="button" id="panelToggle" aria-label="Show or hide the panel">Panel</button>
-  </header>
-  <div role="tablist">
-    <button type="button" role="tab" data-tab="guide" aria-selected="true">Guide</button>
-    <button type="button" role="tab" data-tab="scope" aria-selected="false">Telescope</button>
-    <button type="button" role="tab" data-tab="sky" aria-selected="false">Sky &amp; place</button>
-  </div>
-
-  <section role="tabpanel" id="tab-guide">
-    <div class="step" id="lessonStep"></div>
-    <h2 id="lessonTitle"></h2>
-    <div id="lessonBody"></div>
-    <div class="lesson-nav">
-      <button type="button" id="prev">Back</button>
-      <button type="button" id="replay">Show me again</button>
-      <button type="button" id="next" class="primary">Next</button>
-    </div>
-  </section>
-
-  <section role="tabpanel" id="tab-scope" hidden>
-    <fieldset>
-      <legend>Telescope</legend>
-      <div class="row">
-        <label><input type="radio" name="scope" value="seestar" id="sc-seestar"> Seestar S50 Pro</label>
-        <label><input type="radio" name="scope" value="refractor" id="sc-refractor"> Refractor</label>
-        <label><input type="radio" name="scope" value="newtonian" id="sc-newtonian"> Newtonian</label>
-        <label><input type="radio" name="scope" value="sct" id="sc-sct"> Schmidt-Cassegrain</label>
-      </div>
-      <div class="facts" id="scopeFacts"></div>
-      <div class="row"><label><input type="checkbox" id="corrected"> <span id="corrLabel"></span></label></div>
-      <div class="hint" id="corrHint"></div>
-    </fieldset>
-    <fieldset>
-      <legend>Aperture, focal length &amp; sensor</legend>
-      <div id="lensSliders">
-        <div class="slider"><label for="focal">Focal length</label><output id="focalOut"></output><input type="range" id="focal" min="100" max="1200" step="10"></div>
-        <div class="slider"><label for="aperture">Aperture (lens diameter)</label><output id="apertureOut"></output><input type="range" id="aperture" min="20" max="200" step="1"></div>
-        <div class="row"><label for="sensorPreset">Sensor</label><select id="sensorPreset"></select></div>
-        <div class="slider"><label for="sensorSize">Sensor diagonal</label><output id="sensorOut"></output><input type="range" id="sensorSize" min="4" max="44" step="0.1"></div>
-      </div>
-      <div class="explain" id="explain" aria-live="polite"></div>
-      <button type="button" id="resetLens">Back to the Seestar S50 Pro</button>
-    </fieldset>
-    <fieldset>
-      <legend>Point at</legend>
-      <div class="row"><select id="target" aria-label="Target"></select></div>
-      <div class="row" id="customBox" hidden>
-        <label>RA (hours) <input type="number" id="customRa" min="0" max="24" step="0.1" value="0"></label>
-        <label>Dec (°) <input type="number" id="customDec" min="-90" max="90" step="0.5" value="0"></label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend>Mount</legend>
-      <div class="row">
-        <label><input type="radio" name="mount" value="altaz" id="mt-altaz"> Alt-az mode</label>
-        <label><input type="radio" name="mount" value="eq" id="mt-eq"> Equatorial mode (on a wedge)</label>
-      </div>
-      <div class="row"><label><input type="checkbox" id="tracking"> Track the target</label> <span class="kv" id="offAxis"></span></div>
-      <div class="rate">
-        <span id="axisAName"></span><b id="axisARate"></b><span class="bar"><i id="axisABar"></i></span>
-        <span id="axisBName"></span><b id="axisBRate"></b><span class="bar"><i id="axisBBar"></i></span>
-      </div>
-      <p class="hint">Speeds needed to follow the target, in degrees per hour of sky time.</p>
-    </fieldset>
-  </section>
-
-  <section role="tabpanel" id="tab-sky" hidden>
-    <fieldset>
-      <legend>Show</legend>
-      <div class="row"><label><input type="checkbox" id="ly-eq"> <i class="chip" style="background:var(--eq)"></i> Equatorial grid (RA/Dec), celestial equator and poles</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-ecl"> <i class="chip" style="background:var(--ecl)"></i> Ecliptic</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-hor"> <i class="chip" style="background:var(--hor)"></i> Horizon and alt-az grid</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-mer"> <i class="chip" style="background:var(--mer)"></i> Meridian</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-moonOrbit"> <i class="chip" style="background:var(--moon)"></i> Moon&rsquo;s orbit</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-con"> Constellation lines</label> <label><input type="checkbox" id="ly-names"> Names</label> <label><input type="checkbox" id="ly-labels"> Labels</label></div>
-      <div class="row"><label><input type="checkbox" id="ly-ground"> See through the ground</label></div>
-    </fieldset>
-    <fieldset>
-      <legend>Where you are</legend>
-      <div class="row">
-        <label>Latitude <input type="number" id="lat" min="-90" max="90" step="0.0001"></label>
-        <label>Longitude <input type="number" id="lon" min="-180" max="180" step="0.0001"></label>
-      </div>
-      <div class="row"><select id="place" aria-label="Choose a place"></select></div>
-      <p class="hint">Positive latitude is north, positive longitude is east.</p>
-    </fieldset>
-    <fieldset>
-      <legend>Date and time</legend>
-      <div class="row"><input type="datetime-local" id="setTime" aria-label="Set date and time (UTC)"> <span class="kv">UTC</span></div>
-    </fieldset>
-    <fieldset>
-      <legend>About</legend>
-      <p class="hint">Positions use low-precision formulas (Sun and Moon to about a degree) and ignore precession. Star data: d3-celestial (Hipparcos to magnitude 6). Coastlines: Natural Earth via world-atlas. The Seestar S50 Pro lens is modelled as a two-element ED doublet with ZWO&rsquo;s published 50 mm aperture and 260 mm focal length; the real lens has four elements.</p>
-    </fieldset>
-  </section>
-</aside>
-
-<div id="timebar" role="group" aria-label="Time">
-  <span id="clock"></span>
-  <button type="button" id="playPause">Pause</button>
-  <select id="speed" aria-label="Time speed"></select>
-  <button type="button" id="now">Now</button>
-  <span class="kv">Sidereal time <b id="lst"></b></span>
-  <span class="kv">Sun altitude <b id="sunAlt"></b></span>
-</div>
-
-<nav id="ladder" aria-label="Zoom to scale">
-  <button type="button" class="eye-btn" id="modeEye" data-stop="eye"><span>Stand here</span><small>look at the sky</small></button>
-  <div id="scaleNote"></div>
-</nav>
-
-<div id="readout" aria-label="Target coordinates">
-  <span class="name" id="rTarget"></span>
-  <span class="grp"><span class="kv k-eq">RA <b id="rRa"></b></span><span class="kv k-eq">Dec <b id="rDec"></b></span></span>
-  <span class="grp"><span class="kv k-mer">Hour angle <b id="rHa"></b></span></span>
-  <span class="grp"><span class="kv k-hor">Altitude <b id="rAlt"></b></span><span class="kv k-hor">Azimuth <b id="rAz"></b></span></span>
-  <span class="kv">Latitude <b id="latLabel"></b></span>
-  <span id="rHorizon" hidden>Below your horizon</span>
-</div>
-
-<div id="eyebox">
-  <div id="eyeTitle">Camera view</div>
-  <canvas id="eyeview" width="392" height="392"></canvas>
-  <div id="eyeCaption"></div>
-  <div id="sunWarn" hidden>The Sun is in view. Never point a telescope at the Sun without a proper solar filter.</div>
-</div>
-
-<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>
-<script type="module">
-/*APP*/
-</script>

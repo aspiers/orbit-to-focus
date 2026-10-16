@@ -1,9 +1,9 @@
 // Sanity checks for the astronomy and optics maths. Run: node tools/selfcheck.mjs
 import assert from 'node:assert/strict';
-import * as A from '../src/astro.js';
-import * as O from '../src/optics.js';
+import * as A from '../src/astro.ts';
+import * as O from '../src/optics.ts';
 
-const near = (a, b, tol, what) => assert.ok(Math.abs(a - b) <= tol, `${what}: ${a} vs ${b} (tol ${tol})`);
+const near = (a: number, b: number, tol: number, what: string) => assert.ok(Math.abs(a - b) <= tol, `${what}: ${a} vs ${b} (tol ${tol})`);
 const lat = 51.4769 * A.D2R, lon = -0.0005 * A.D2R;
 
 // June solstice 2026: the Sun sits at RA 6h, Dec +23.44.
@@ -29,7 +29,7 @@ const ms = A.moonEcliptic(ecl), ss = A.sunEcliptic(ecl);
 near(((ms.lon - ss.lon + 3 * Math.PI) % (2 * Math.PI)) - Math.PI, 0, 1.5 * A.D2R, 'eclipse Moon-Sun longitude');
 
 // Optics: corrected designs focus tightly, uncorrected ones show their aberration.
-for (const type of ['seestar', 'refractor', 'newtonian', 'sct']) {
+for (const type of ['seestar', 'refractor', 'newtonian', 'sct', 'petzval'] as const) {
   const good = O.makeTelescope(type, true), bad = O.makeTelescope(type, false);
   const sg = O.focusSpread(good), sb = O.focusSpread(bad);
   console.log(type, 'EFL', good.focalLength.toFixed(1), 'spread corrected', sg.toFixed(3), 'uncorrected', sb.toFixed(3),
@@ -37,11 +37,11 @@ for (const type of ['seestar', 'refractor', 'newtonian', 'sct']) {
   if (good.lens) assert.ok(O.chromaticShift(good) < O.chromaticShift(bad) / 5, `${type} doublet fixes colour`);
   else assert.ok(sg < sb / 5, `${type} correction tightens focus`);
   const fan = O.rayFan(good, 0);
-  assert.ok(fan.filter((r) => r.alive || type === 'seestar').length > 0, `${type} rays reach the end`);
+  assert.ok(fan.filter((r: O.Ray) => r.alive || !!good.sensor).length > 0, `${type} rays reach the end`);
 }
 const s = O.makeTelescope('seestar', true);
 near(s.focalLength, 260, 8, 'Seestar focal length');
-near(Math.hypot(...s.field), 2.8, 0.15, 'Seestar diagonal field');
+near(Math.hypot(...s.field!), 2.8, 0.15, 'Seestar diagonal field');
 const n = O.makeTelescope('newtonian', true);
 near(n.focalLength, 750, 1, 'Newtonian focal length');
 const sct = O.makeTelescope('sct', true);
@@ -53,4 +53,6 @@ for (const [focal, aperture] of [[100, 20], [260, 50], [600, 120], [1200, 200], 
   near(c.focalLength, focal, focal * 0.04, `custom ${focal}/${aperture} focal length`);
   console.log(`custom ${focal} mm f/${(focal / aperture).toFixed(1)}: spread ${O.focusSpread(c).toFixed(3)} mm, colour ${O.chromaticShift(c).toFixed(3)} mm`);
 }
+const pz = O.makeTelescope('petzval', true);
+near(pz.focalLength, 400, 12, 'Petzval focal length');
 console.log('all checks passed');
