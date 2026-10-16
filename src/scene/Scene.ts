@@ -568,14 +568,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   }
 
   // ---------- labels ----------
-  interface Label { el: HTMLDivElement; pos: (v: THREE.Vector3) => THREE.Vector3; alpha: () => number; bg?: boolean; text?: () => string; last?: string }
+  interface Label { el: HTMLDivElement; pos: (v: THREE.Vector3) => THREE.Vector3; alpha: () => number; bg?: boolean; text?: () => string; last?: string; cls?: () => string; lastCls?: string }
   const labels: Label[] = [];
   let W8: Weights = weights(S());
-  function label(text: string | (() => string), cls: string, pos: Label['pos'], alpha: Label['alpha'], bg = false) {
+  function label(text: string | (() => string), cls: string | (() => string), pos: Label['pos'], alpha: Label['alpha'], bg = false) {
     const el = document.createElement('div');
-    el.className = 'lbl ' + cls;
     const l: Label = { el, pos, alpha, bg };
     if (typeof text === 'function') l.text = text; else el.textContent = text;
+    if (typeof cls === 'function') l.cls = cls; else el.className = 'lbl ' + cls;
     labelLayer.append(el);
     labels.push(l);
     return el;
@@ -585,6 +585,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       const a = s.layers.labels ? l.alpha() : 0;
       if (a < 0.03) { l.el.style.opacity = '0'; continue; }
       if (l.text) { const t = l.text(); if (t !== l.last) l.el.textContent = l.last = t; }
+      if (l.cls) { const c = 'lbl ' + l.cls(); if (c !== l.lastCls) l.el.className = l.lastCls = c; }
       l.pos(tmp);
       if (l.bg) tmp.multiplyScalar(SKY_R).project(bgCamera); else tmp.project(camera);
       if (tmp.z > 1 || tmp.z < -1 || Math.abs(tmp.x) > 1.05 || Math.abs(tmp.y) > 1.05) { l.el.style.opacity = '0'; continue; }
@@ -619,7 +620,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   latLbl('Equator', 'l-solar', (v) => v.copy(vec(sphToVec(S().lon, 0))).multiplyScalar(1.6));
   // Below left of the line's end, so it misses the latitude label at your feet.
   latLbl('Zenith (straight up)', 'l-hor below-left', (v) => v.copy(vec(sphToVec(S().lon, S().lat))).multiplyScalar(1.6));
-  latLbl('Mount’s polar axis, parallel to Earth’s axis', 'l-eq', (v) => v.copy(latPts.axis));
+  // Below the axis line's end, so in the north it clears the time bar along the top of the screen.
+  latLbl('Mount’s polar axis, parallel to Earth’s axis', 'l-eq below', (v) => v.copy(latPts.axis));
   latLbl(() => `Horizon, looking ${S().lat < 0 ? 'south' : 'north'}`, 'l-hor', (v) => v.copy(latPts.horizon));
   label(() => `polar axis tilt = latitude = ${(Math.abs(S().lat) * R2D).toFixed(1)}°`, 'l-angle', (v) => site.localToWorld(v.set(0, mount.wedge.position.y + 0.12, poleSide(S().lat) * 0.36)), () => (lay('lat') && S().mountMode === 'eq' ? W8.scope * (1 - W8.opt) : 0));
   const skyLbl = (text: string, cls: string, dir: () => THREE.Vector3, extra = () => 1) =>
@@ -627,7 +629,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const siteDir = (x: number, y: number, z: number) => () => V(x, y, z).normalize().applyQuaternion(bgSite.quaternion);
   for (const [n, x, z] of [['N', 0, -1], ['E', 1, 0], ['S', 0, 1], ['W', -1, 0]] as const) skyLbl(n, 'l-hor big', siteDir(x, 0.02, z), () => (lay('hor') ? 1 : 0));
   skyLbl('Zenith', 'l-hor', siteDir(0, 1, 0), () => (lay('hor') ? 1 : 0));
-  skyLbl('Meridian', 'l-mer', siteDir(0, Math.sin(1.1), Math.cos(1.1)), () => (lay('mer') ? 1 : 0));
+  // On the equator side of the zenith, the side lesson 8 faces. On the pole side at Sydney it sat at declination
+  // -61°, where Alpha Centauri, Hadar and Mimosa cross the meridian every day.
+  skyLbl('Meridian', 'l-mer', () => V(0, Math.sin(1.1), -poleSide(S().lat) * Math.cos(1.1)).applyQuaternion(bgSite.quaternion), () => (lay('mer') ? 1 : 0));
   // Below left of the pole, so it misses the label of Polaris, under a degree away and labelled above right.
   skyLbl('North celestial pole', 'l-eq below-left', () => V(0, 1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
   // Below left of the pole, so it misses the label of Sigma Octantis, a degree away and labelled above right.
@@ -637,16 +641,24 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   skyLbl('Sun', 'l-sun', () => sky.sunDirW);
   skyLbl('Moon', 'l-moon', () => sky.moonDirW);
   skyLbl('', 'l-brass ring', () => sky.targetDirW);
-  for (const [ra, dec, mag, name] of DATA.named) {
-    if (mag > 1.6) continue;
-    const d = vec(sphToVec(ra * D2R, dec * D2R)).applyQuaternion(eqToWorld);
-    skyLbl(name, 'l-star', () => d, () => (lay('names') ? 0.8 : 0));
+  const near = Math.cos(0.5 * D2R);
+  const stars = DATA.named.filter(([, , mag]) => mag <= 1.6).map(([ra, dec, mag, name]) => ({ d: vec(sphToVec(ra * D2R, dec * D2R)).applyQuaternion(eqToWorld), mag, name }));
+  // Hadar, 4.4° away at nearly the same declination, sits just right of Alpha Centauri as they cross the meridian,
+  // inside its long name. So Alpha Centauri's name, or the target's on it, goes below left.
+  const aCen = TARGETS.find(([n]) => n === 'Alpha Centauri')!;
+  const aCenDir = vec(sphToVec(aCen[1]! * D2R, aCen[2]! * D2R)).applyQuaternion(eqToWorld);
+  const side = (d: THREE.Vector3) => (d.dot(aCenDir) > near ? ' below-left' : '');
+  for (const { d, mag, name } of stars) {
+    // A pair such as Toliman and Rigil Kentaurus, 0.01° apart, is named once, by its brighter star.
+    if (stars.some((o) => o.mag < mag && o.d.dot(d) > near)) continue;
+    // Hidden under the target, whose own label names it.
+    skyLbl(name, 'l-star' + side(d), () => d, () => (lay('names') && d.dot(sky.targetDirW) < near ? 0.8 : 0));
   }
   for (const [ra, dec, name] of DATA.cnames) {
     const d = vec(sphToVec(ra * D2R, dec * D2R)).applyQuaternion(eqToWorld);
     skyLbl(name, 'l-con', () => d, () => (lay('con') && lay('names') ? 0.55 : 0));
   }
-  label(() => TARGETS[S().target][0], 'l-brass tname', (v) => v.copy(sky.targetDirW), () => (W8.site > 0.5 && above(sky.targetDirW) ? 1 : 0), true);
+  label(() => TARGETS[S().target][0], () => 'l-brass tname' + side(sky.targetDirW), (v) => v.copy(sky.targetDirW), () => (W8.site > 0.5 && above(sky.targetDirW) ? 1 : 0), true);
   // Optics labels, in the optics group's millimetre coordinates.
   const NOWHERE: [number, number, number] = [0, 0, -1e6];
   const opticsLbl = (text: string | (() => string), cls: string, pos: () => [number, number, number]) =>
