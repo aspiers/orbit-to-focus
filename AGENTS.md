@@ -1,4 +1,4 @@
-# Orbit to Eyepiece
+# Orbit to Focus
 
 A single-page web app that teaches astronomy spatially: from the solar
 system down through the Earth, your site and a telescope to its optics. See
@@ -20,7 +20,7 @@ system down through the Earth, your site and a telescope to its optics. See
   optics, address-bar encoding). Run after any change to `src/astro.ts`,
   `src/optics.ts` or `src/url.ts`.
 - `npm run build`: typecheck, then a single-file build in `dist/`
-  (`dist/orbit-to-eyepiece.html` is the publishable artifact).
+  (`dist/orbit-to-focus.html` is the publishable artifact).
 
 ## Conventions
 

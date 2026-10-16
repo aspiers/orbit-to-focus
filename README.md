@@ -1,4 +1,4 @@
-# Orbit to Eyepiece
+# Orbit to Focus
 
 An interactive 3D explainer for new astronomers: zoom continuously from Earth's orbit round the Sun,
 through the Earth, Moon and celestial sphere, down to a telescope on its mount and the light rays
@@ -11,7 +11,7 @@ TypeScript + React for the interface, three.js for the scene, built with Vite in
 
 - `npm run dev` serves it locally with hot reload.
 - `npm run build` type-checks and writes `dist/index.html` (open it directly) and
-  `dist/orbit-to-eyepiece.html` (the artifact body).
+  `dist/orbit-to-focus.html` (the artifact body).
 - `npm run check` checks the astronomy and optics maths (`tools/selfcheck.ts`).
 - `npm run data` regenerates `src/data.ts` from d3-celestial and world-atlas downloads in `tmp/data/`.
 
