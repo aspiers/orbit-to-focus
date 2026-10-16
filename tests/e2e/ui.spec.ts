@@ -15,6 +15,7 @@ const near = (p: Box, q: Box, gap: number) => p.left < q.right + gap && q.left <
 const apart: [string, string, number][] = [
   ['#timebar', '#ladder > *', 0], // a time bar wrapping onto another row once hid it behind the zoom buttons
   ['#timebar', '#panel', 12],
+  ['#ladder > *', '#eyebox', 0], // the zoom buttons and scale note on short screens
 ];
 
 test.describe('controls', () => {
@@ -138,13 +139,13 @@ test.describe('controls', () => {
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
     // The time bar takes one row at 1280 px, two at 1024 and three at 900.
-    for (const [width, height] of [[1280, 800], [1024, 768], [900, 700], [390, 844]]) {
+    for (const [width, height] of [[1280, 800], [1280, 720], [1024, 768], [900, 700], [390, 844]]) {
       await page.setViewportSize({ width, height });
       await page.waitForTimeout(300);
       for (const [a, b, gap] of apart) {
         const [as, bs] = await Promise.all([boxes(page, a), boxes(page, b)]);
         const hits = as.flatMap((p) => bs.filter((q) => near(p, q, gap)).map((q) => `${fmt(p)} ${fmt(q)}`));
-        expect.soft(hits, `${width} x ${height}: ${a} and ${b} closer than ${gap} px`).toEqual([]);
+        expect.soft(hits, `${width} x ${height}: ${a} and ${b} ${gap ? `closer than ${gap} px` : 'overlap'}`).toEqual([]);
       }
     }
     for (const width of [1280, 1024, 390]) {

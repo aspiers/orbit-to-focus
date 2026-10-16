@@ -65,9 +65,10 @@ export function App() {
       <Panel scene={scene} ref={panel} />
       <TimeBar scene={scene} />
       <Shortcuts scene={scene} />
-      <Ladder scene={scene} ref={ladder} />
       <Readout />
+      {/* Before the ladder, which is anchored to it. */}
       <EyeBox ref={eyeview} />
+      <Ladder scene={scene} ref={ladder} />
     </>
   );
 }

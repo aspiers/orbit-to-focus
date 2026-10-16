@@ -118,16 +118,21 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 .kv b.w2 { min-width: 2ch; } .kv b.w5 { min-width: 5ch; } .kv b.w6 { min-width: 6ch; } .kv b.w8 { min-width: 8ch; }
 .kv b.left { text-align: left; }
 #timebar .fixed-w { min-width: 4.6em; } #timebar .fixed-w.wide { min-width: 8.2em; }
-#ladder { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 72px); display: flex; flex-direction: column; gap: 4px; width: 168px; }
-/* Below the time bar however many rows it wraps onto; 72px above is for browsers without anchor positioning. */
-#ladder { top: calc(anchor(--timebar bottom) + 7px); }
+#ladder { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 72px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 269px); display: flex; flex-direction: column; gap: 4px; width: 168px; container-type: size; pointer-events: none; }
+#ladder > * { pointer-events: auto; }
+/* Below the time bar however many rows it wraps onto, and above the camera view; 72px and 269px above are for
+   browsers without anchor positioning. When that leaves too little room the hints go, then the scale note. */
+#ladder { top: calc(anchor(--timebar bottom) + 7px); bottom: calc(anchor(--eyebox top) + var(--gap)); }
+@container (height < 582px) { #ladder button small { display: none; } }
+@container (height < 374px) { #scaleNote { display: none; } }
 #ladder button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: var(--panel); padding: 6px 10px; border-color: var(--line); position: relative; }
 #ladder button span { font-weight: 500; }
 #ladder button small { color: var(--muted); font: 11px var(--mono); }
 #timebar button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
 #ladder button[aria-current=true] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 #ladder .eye-btn { margin-top: 6px; }
-#scaleNote { font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-top: 6px; }
+#scaleNote { font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-top: 6px; overflow-y: auto; }
 
 /* Bottom: readout strip and camera view */
 #readout { position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: calc(348px + 2 * var(--gap)); right: calc(212px + 2 * var(--gap));
@@ -139,7 +144,7 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 #readout .kv b { font-size: 13px; }
 .k-eq { color: var(--eq); } .k-hor { color: var(--hor); } .k-mer { color: var(--mer); }
 #rHorizon { color: var(--warn); font-size: 12px; }
-#eyebox { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); width: 212px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; backdrop-filter: blur(8px); }
+#eyebox { position: fixed; z-index: 2; right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); width: 212px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; backdrop-filter: blur(8px); anchor-name: --eyebox; }
 #eyebox canvas { width: 196px; height: 196px; display: block; cursor: grab; touch-action: none; }
 #eyebox canvas:active { cursor: grabbing; }
 .l-angle { color: #fff; font: 600 12px/1.2 var(--mono); background: rgba(4, 6, 13, 0.7); border-radius: 3px; }
@@ -154,7 +159,7 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 12px 12px 0 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   #panel.closed { height: auto; }
   #timebar { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); max-width: none; justify-content: flex-start; padding: 6px 8px; }
-  #ladder { top: auto; bottom: calc(46vh + 64px); flex-direction: row; overflow-x: auto; scrollbar-width: none; width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); }
+  #ladder { top: auto; bottom: calc(46vh + 64px); container-type: normal; flex-direction: row; overflow-x: auto; scrollbar-width: none; width: auto; left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); }
   #ladder button { flex: none; }
   #ladder button small, #scaleNote { display: none; }
   #ladder .eye-btn { margin-top: 0; }
