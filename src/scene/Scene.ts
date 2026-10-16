@@ -191,6 +191,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const pointer = polyline([V(0, 0, 0), V(0, 0, 4000)], lineMat(COLORS.brass, 0.55)); // the line of sight, out to "infinity"
   const polarRod = polyline([V(0, -0.1, 0), V(0, 0.45, 0)], lineMat(COLORS.eq, 0.9)); // axis A's direction
   let mount: Mount, scope: Telescope, model: ScopeModel;
+  const eyeTex = new THREE.CanvasTexture(eyeCanvas);
+  eyeTex.colorSpace = THREE.SRGBColorSpace;
 
   function buildScope() {
     const s = S();
@@ -198,7 +200,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (mount) mountHolder.remove(mount.root);
     mount = buildMount(scope.seestarBody ? 'seestar' : scope.type === 'dobsonian' ? 'dobsonian' : 'generic', scopeHalfWidth(scope));
     mountHolder.add(mount.root);
-    model = buildScopeModel(scope);
+    model = buildScopeModel(scope, { tex: eyeTex, W: eyeCanvas.width, H: eyeCanvas.height, k: eyeScale(), R: Math.min(eyeCanvas.width, eyeCanvas.height) * 0.46 });
     model.group.position.copy(mount.scopeOffset);
     mount.axisB.add(model.group, opticsFrame, pointer);
     mount.axisA.add(polarRod);
@@ -445,6 +447,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     }
     // Zooming changes which frame yaw and pitch are measured in. Re-express them so the camera's
     // direction in space carries on smoothly instead of swinging round.
+    const dL = Math.abs(L - frameL);
     if (L !== frameL) {
       const dir = dirOf(cam.yaw, cam.pitch).applyQuaternion(frameQ(frameL, qA)).applyQuaternion(frameQ(L, qB).invert());
       // Keep an over-the-top view over the top (pitch past 90 degrees), or its roll would flip.
@@ -457,8 +460,10 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       cam.yaw += wrapPi(anim.to.yaw - cam.yaw) * pull;
       cam.pitch += (anim.to.pitch - cam.pitch) * pull;
     }
-    // The descent floor is approached quickly but never snapped to, so leaving a set-piece view doesn't jolt.
-    const ease = 1 - Math.exp(-dt * 8);
+    // The framing rules below (descent floor and ceiling, turning to face the target on landing, swinging side-on
+    // into the tube) guide a zoom: they ease in as you zoom, by how far you zoom, and never pull back a view you
+    // dragged at a fixed zoom. Fly-tos ease them in over time instead.
+    const ease = anim ? 1 - Math.exp(-dt * 8) : 1 - Math.exp(-dL * 6);
     fr += ((freeGoal ? smooth(L, -0.6, 0.5) : 0) - fr) * (1 - Math.exp(-dt * 3));
     const floor = pitchFloor(L) * (1 - fr), ceiling = anim?.climb ? Infinity : pitchCeiling(L);
     if (cam.pitch < floor) cam.pitch += (floor - cam.pitch) * ease;
@@ -609,7 +614,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   // Optics labels, in the optics group's millimetre coordinates.
   const NOWHERE: [number, number, number] = [0, 0, -1e6];
   const opticsLbl = (text: string | (() => string), cls: string, pos: () => [number, number, number]) =>
-    label(text, cls, (v) => { const [x, , z] = pos(); return model.optics.localToWorld(v.set(0, x, z)); }, () => (S().mode === 'eye' ? 0 : smooth(W8.opt, 0.6, 1)));
+    // NOWHERE (a label this telescope doesn't have) is far behind the tube, which some view angles still show.
+    label(text, cls, (v) => { const [x, , z] = pos(); return model.optics.localToWorld(v.set(0, x, z)); }, () => (S().mode === 'eye' || pos() === NOWHERE ? 0 : smooth(W8.opt, 0.6, 1)));
   const fNum = () => (scope.focalLength / scope.aperture).toFixed(1);
   const nominalF = () => scopeInfo.get().nominalFocal;
   opticsLbl('Starlight', 'l-optics', () => [scope.aperture * 0.4, 0, scope.uAperture + 330]);
@@ -662,7 +668,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // A camera sensor is a portrait rectangle; an eyepiece shows a circle.
     const fov = scope.field ?? [scope.trueField!, scope.trueField!];
     const half = (Math.max(fov[0], fov[1]) / 2) * D2R, R = Math.min(Wd, Hd) * 0.46, k = eyeScale();
-    const tw = scope.sensor ? Math.tan((fov[0] / 2) * D2R) * k : R, th = scope.sensor ? Math.tan((fov[1] / 2) * D2R) * k : R;
+    // The sensor's long side lies along the tube's x, its short side in the drawn slice (y).
+    const tw = scope.sensor ? Math.tan((fov[1] / 2) * D2R) * k : R, th = scope.sensor ? Math.tan((fov[0] / 2) * D2R) * k : R;
     const outline = () => { ev.beginPath(); if (scope.sensor) ev.rect(cx - tw, cy - th, tw * 2, th * 2); else ev.arc(cx, cy, R, 0, Math.PI * 2); };
     ev.save();
     outline();
@@ -801,7 +808,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       const f = scope.field ?? [scope.trueField!, scope.trueField!], pos = fieldBox.geometry.attributes.position;
       model.group.getWorldQuaternion(qTmp);
       [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].forEach(([a, b], i) => {
-        tmp.set(a * Math.tan((f[0] * D2R) / 2), b * Math.tan((f[1] * D2R) / 2), 1).applyQuaternion(qTmp).setLength(SKY_R * 0.9);
+        tmp.set(a * Math.tan((f[1] * D2R) / 2), b * Math.tan((f[0] * D2R) / 2), 1).applyQuaternion(qTmp).setLength(SKY_R * 0.9);
         pos.setXYZ(i, tmp.x, tmp.y, tmp.z);
       });
       pos.needsUpdate = true;
@@ -860,6 +867,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     renderer.render(scene, camera);
     updateLabels(canvas.clientWidth, canvas.clientHeight, s);
     const sunInView = drawEyeView(daylight);
+    if (w.scope > 0.01) for (const t of model.skyTextures) t.needsUpdate = true;
 
     if (now - lastLive > 125) {
       lastLive = now;

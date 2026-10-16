@@ -21,12 +21,17 @@ const lathe = (pts: [number, number][], mat: THREE.Material) => {
   return new THREE.Mesh(g, mat);
 };
 
+// The camera view's canvas, for showing the patch of sky on the lens and sensor: `k` is canvas pixels per unit of
+// tan(angle) off the axis, and `R` the radius of the drawn field in canvas pixels.
+export interface SkyImage { tex: THREE.Texture; W: number; H: number; k: number; R: number }
+
 export interface ScopeModel {
   group: THREE.Group;        // child of axis B, tube along +z, metres
   optics: THREE.Group;       // millimetres, u along +z, v along +y
   inner: THREE.Group;        // the optics proper: shown only when looking inside (the ray slice is the tube's y-z plane)
   ann: THREE.Group;          // dimension lines
   bodyMaterials: THREE.Material[];
+  skyTextures: THREE.Texture[]; // refresh these when the camera view is redrawn
   focus: THREE.Object3D;
   updateRays(angle: number, alpha: number): void;
 }
@@ -34,7 +39,7 @@ export interface ScopeModel {
 const WAVE_RGB: Record<Wave, [number, number, number]> = { r: [1, 0.3, 0.25], g: [0.75, 1, 0.35], b: [0.3, 0.5, 1] };
 const MONO_RGB: [number, number, number] = [1, 0.9, 0.6];
 
-export function buildScopeModel(scope: Telescope): ScopeModel {
+export function buildScopeModel(scope: Telescope, img: SkyImage): ScopeModel {
   const group = new THREE.Group(), optics = new THREE.Group(), inner = new THREE.Group(), ann = new THREE.Group();
   optics.scale.setScalar(0.001);
   group.add(optics);
@@ -44,6 +49,17 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   const bodyMat = translucent(scope.seestarBody ? 0xf1f1ec : scope.color, { side: THREE.DoubleSide });
   const black = translucent(0x14161b);
   const bodyMaterials: THREE.Material[] = [bodyMat, black];
+  // Each use crops the shared canvas differently, so each gets its own copy of the texture.
+  const skyTextures: THREE.Texture[] = [];
+  const skyMat = (repeat: [number, number], offset: [number, number]) => {
+    const t = img.tex.clone();
+    t.repeat.set(...repeat); t.offset.set(...offset);
+    skyTextures.push(t);
+    return new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+  };
+  const { W, H, k, R } = img;
+  // The front shows the patch of sky upright, as a reflection would: +x to the right, +y up.
+  const frontSky = () => skyMat([(2 * R) / W, (-2 * R) / H], [(W / 2 - R) / W, 1 - (H / 2 - R) / H]);
 
   if (scope.seestarBody) {
     // The real light path is folded to fit this box; the optics here are drawn unfolded, lens at the front face.
@@ -54,7 +70,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
     ota.add(new THREE.Mesh(extrude(roundedRect(w, h, 26), len, 6).translate(0, 0, -len / 2), bodyMat));
     const face = len / 2 + 0.5;
     ota.add(new THREE.Mesh(new THREE.RingGeometry(26, 31, 48).translate(0, 8, face), black));
-    ota.add(new THREE.Mesh(new THREE.CircleGeometry(26, 48).translate(0, 8, face - 0.3), new THREE.MeshPhysicalMaterial({ color: 0x223355, transparent: true, opacity: 0.5, roughness: 0.05, depthWrite: false })));
+    ota.add(new THREE.Mesh(new THREE.CircleGeometry(26, 48).translate(0, 8, face - 0.3), frontSky()));
     ota.add(new THREE.Mesh(new THREE.CircleGeometry(7, 24).translate(0, -34, face), black)); // wide-angle camera
     optics.position.set(0, 0.008, (face - scope.uAperture - 1) * 0.001);
   } else {
@@ -64,6 +80,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
       : new THREE.Mesh(new THREE.CylinderGeometry(scope.rTube, scope.rTube, len, 48, 1, true).rotateX(Math.PI / 2), bodyMat);
     body.position.z = mid;
     optics.add(body);
+    optics.add(new THREE.Mesh(new THREE.CircleGeometry(scope.aperture / 2, 48).translate(0, 0, scope.uAperture + 2), frontSky()));
     optics.position.z = -mid * 0.001;
   }
 
@@ -116,6 +133,13 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
     const board = new THREE.Mesh(new THREE.BoxGeometry(sh + 14, sw + 14, 2), new THREE.MeshStandardMaterial({ color: 0x1f5130, transparent: true, opacity: 0.35, depthWrite: false }));
     board.position.set(0, 0, scope.focus[0] - 1.8);
     inner.add(chip, board);
+    // The image as it lands on the sensor, seen from the lens side: upside down and mirrored. A point (X, Y) on the
+    // sensor receives light from the direction (-X, -Y) / focal length.
+    const f = scope.focalLength;
+    const image = new THREE.Mesh(new THREE.PlaneGeometry(sh, sw), skyMat(
+      [(-k * sh) / (f * W), (k * sw) / (f * H)], [0.5 + (k * sh) / (2 * f * W), 0.5 - (k * sw) / (2 * f * H)]));
+    image.position.set(0, 0, scope.focus[0] + 0.05);
+    inner.add(image);
   }
 
   // Dimension lines for aperture and focal length, and the field-of-view wedge set by the sensor.
@@ -158,7 +182,7 @@ export function buildScopeModel(scope: Telescope): ScopeModel {
   optics.add(focus);
 
   return {
-    group, optics, inner, ann, bodyMaterials, focus,
+    group, optics, inner, ann, bodyMaterials, skyTextures, focus,
     updateRays(angle, alpha) {
       rays.visible = alpha > 0.01;
       rayMat.opacity = alpha;
