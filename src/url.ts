@@ -13,8 +13,7 @@ const fields = (s: Settings, view: View): Record<string, string> => ({
   tab: s.tab,
   view,
   speed: String(s.speed),
-  lat: (s.lat * R2D).toFixed(5),
-  lon: (s.lon * R2D).toFixed(5),
+  loc: `${+(s.lat * R2D).toFixed(6)},${+(s.lon * R2D).toFixed(6)}`,
   target: TARGETS[s.target][0],
   ...(TARGETS[s.target][1] === null ? { ra: (s.customRa * R2D).toFixed(3), dec: (s.customDec * R2D).toFixed(3) } : {}),
   mount: s.mountMode,
@@ -45,8 +44,8 @@ export function decodeState(hash: string): { lesson?: number; view?: View; patch
 
   set('tab', oneOf<Tab>('tab', ['guide', 'scope', 'sky']));
   set('speed', num('speed', -1e7, 1e7));
-  const lat = num('lat', -90, 90), lon = num('lon', -180, 180);
-  if (lat !== undefined && lon !== undefined) { patch.lat = lat * D2R; patch.lon = lon * D2R; }
+  const [lat, lon] = (p.get('loc') ?? '').split(',').map(Number);
+  if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) { patch.lat = lat * D2R; patch.lon = lon * D2R; }
   const target = TARGETS.findIndex((t) => t[0] === p.get('target'));
   if (target >= 0) patch.target = target;
   const ra = num('ra', 0, 360), dec = num('dec', -90, 90);

@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { PLACES, SENSORS, TARGETS, TELESCOPES } from '../constants.ts';
 import { SEESTAR, type TelescopeType } from '../optics.ts';
 import { live, scopeInfo, settings, ui, useStore, type LayerId } from '../store.ts';
@@ -179,6 +179,7 @@ const LAYERS: [LayerId, string, string?][] = [
 
 function SkyTab({ scene }: { scene: SceneApi | null }) {
   const s = useStore(settings, (x) => x);
+  const place = String(PLACES.findIndex(([, la, lo]) => Math.abs(la * D2R - s.lat) < 1e-6 && Math.abs(lo * D2R - s.lon) < 1e-6)).replace('-1', '');
   const setLoc = (la: number, lo: number) => settings.set({ lat: Math.min(89.99, Math.max(-89.99, la)) * D2R, lon: lo * D2R });
   return (
     <>
@@ -194,12 +195,12 @@ function SkyTab({ scene }: { scene: SceneApi | null }) {
       <fieldset>
         <legend>Where you are</legend>
         <div className="row">
-          <label>Latitude <input type="number" min={-90} max={90} step={0.0001} key={`la${s.lat}`} defaultValue={(s.lat * R2D).toFixed(4)} onChange={(e) => setLoc(+e.target.value || 0, s.lon * R2D)} /></label>
-          <label>Longitude <input type="number" min={-180} max={180} step={0.0001} key={`lo${s.lon}`} defaultValue={(s.lon * R2D).toFixed(4)} onChange={(e) => setLoc(s.lat * R2D, +e.target.value || 0)} /></label>
+          <label>Latitude <NumField min={-90} max={90} step={0.0001} value={s.lat * R2D} onValue={(v) => setLoc(v, s.lon * R2D)} /></label>
+          <label>Longitude <NumField min={-180} max={180} step={0.0001} value={s.lon * R2D} onValue={(v) => setLoc(s.lat * R2D, v)} /></label>
         </div>
         <div className="row">
-          <select aria-label="Choose a place" value="" onChange={(e) => { const p = PLACES[+e.target.value]; if (p) setLoc(p[1], p[2]); }}>
-            <option value="">Choose a place…</option>
+          <select aria-label="Choose a place" value={place} onChange={(e) => { const p = PLACES[+e.target.value]; if (p) setLoc(p[1], p[2]); }}>
+            <option value="" disabled>Other place</option>
             {PLACES.map(([n, la, lo], i) => <option key={n} value={i}>{n} ({la.toFixed(2)}, {lo.toFixed(2)})</option>)}
           </select>
         </div>
@@ -214,5 +215,19 @@ function SkyTab({ scene }: { scene: SceneApi | null }) {
         <p className="hint">Positions use low-precision formulas (Sun and Moon to about a degree) and ignore precession. Star data: d3-celestial (Hipparcos to magnitude 6). Coastlines: Natural Earth via world-atlas. The Seestar S50 Pro body follows ZWO’s published drawing; its lens is modelled as a two-element ED doublet with the published 50 mm aperture and 260 mm focal length (the real lens has four elements and a folded light path).</p>
       </fieldset>
     </>
+  );
+}
+
+// A number box you can type into freely: it follows outside changes (a place picked, a link opened) except while
+// you're typing in it, and reports each valid number as you type.
+function NumField({ value, onValue, ...rest }: { value: number; onValue: (v: number) => void } & InputHTMLAttributes<HTMLInputElement>) {
+  const [text, setText] = useState(value.toFixed(4));
+  const typing = useRef(false);
+  useEffect(() => { if (!typing.current) setText(value.toFixed(4)); }, [value]);
+  return (
+    <input type="number" {...rest} value={text}
+      onFocus={() => { typing.current = true; }}
+      onBlur={() => { typing.current = false; setText(value.toFixed(4)); }}
+      onChange={(e) => { setText(e.target.value); const v = parseFloat(e.target.value); if (Number.isFinite(v)) onValue(v); }} />
   );
 }
