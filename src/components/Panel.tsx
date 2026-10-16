@@ -7,10 +7,9 @@ import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
 
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
-type Tab = 'guide' | 'scope' | 'sky';
 
 export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(function Panel({ scene }, ref) {
-  const [tab, setTab] = useState<Tab>('guide');
+  const tab = useStore(settings, (s) => s.tab);
   const [closed, setClosed] = useState(false);
   return (
     <aside id="panel" aria-label="Lessons and controls" ref={ref} className={closed ? 'closed' : ''}>
@@ -20,7 +19,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
       </header>
       <div role="tablist">
         {([['guide', 'Guide'], ['scope', 'Telescope'], ['sky', 'Sky & place']] as const).map(([id, name]) => (
-          <button type="button" role="tab" key={id} aria-selected={tab === id} onClick={() => setTab(id)}>{name}</button>
+          <button type="button" role="tab" key={id} aria-selected={tab === id} onClick={() => settings.set({ tab: id })}>{name}</button>
         ))}
       </div>
       <section role="tabpanel">

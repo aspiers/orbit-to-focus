@@ -31,7 +31,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   // A fly-to: L moves smoothly in log space; yaw and pitch are pulled toward their goals in the destination frame.
   // A `climb` zooms out over the first 60% of the time and turns over the last 55%, so it doesn't swing round while
   // skimming over the ground.
-  let anim: { t: number; g: number; h: number; climb: boolean; dur: number; fromL: number; to: typeof cam } | null = null;
+  let anim: { t: number; g: number; h: number; climb: boolean; dur: number; fromL: number; to: typeof cam; stop: StopId } | null = null;
   let frameL = cam.L; // the zoom level that cam.yaw/pitch are currently expressed for
   // A set-piece view (the meridian slice) lifts the descent rules until the user zooms. `fr` eases in
   // and out so neither arriving nor leaving jolts, and is held off near the ground so the climb out is the
@@ -333,7 +333,16 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (opts.yaw === undefined && (stop === 'site' || stop === 'scope') && sky.h) yaw = -sky.h.az + 0.2;
     const L = stop === 'optics' ? opticsL() : st.L;
     // Longer journeys take longer, so no stretch of the zoom rushes past.
-    anim = { t: 0, g: 0, h: 0, climb: false, dur: clamp(0.9 + 0.32 * Math.abs(L - cam.L), 1.2, 3.4), fromL: cam.L, to: { L, yaw, pitch: (opts.pitch ?? st.pitch) * D2R } };
+    lastCap = speedCap(L);
+    limitSpeed(lastCap);
+    anim = { t: 0, g: 0, h: 0, climb: false, dur: clamp(0.9 + 0.32 * Math.abs(L - cam.L), 1.2, 3.4), fromL: cam.L, to: { L, yaw, pitch: (opts.pitch ?? st.pitch) * D2R }, stop };
+  }
+  // 1 week/s at the telescope is a blur, so each zoom band has a speed limit. It applies on entering the band;
+  // a faster speed picked afterwards is left alone.
+  const speedCap = (L: number) => (S().mode === 'eye' || L < LM + 4 ? 600 : L < 1.15 ? 3600 : L < 1.9 ? 86400 : Infinity);
+  function limitSpeed(cap: number) {
+    const s = S(), lim = (v: number) => Math.sign(v) * Math.min(Math.abs(v), cap);
+    if (Math.abs(s.speed) > cap || Math.abs(s.lastSpeed) > cap) settings.set({ speed: lim(s.speed), lastSpeed: lim(s.lastSpeed) });
   }
   // Your site's orientation in space, worked out from the settings so it works before the first frame.
   function siteQuaternion(st: Settings, out: THREE.Quaternion) {
@@ -359,6 +368,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   function standHere(yawDeg = 0, pitchDeg = 30) {
     freeGoal = false;
     settings.set({ mode: 'eye' });
+    limitSpeed((lastCap = 600));
     eye.yaw = yawDeg * D2R; eye.pitch = pitchDeg * D2R;
   }
 
@@ -673,14 +683,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     }
     computeSky(s);
     const w = (W8 = weights(s));
-    // Zooming into a closer band slows time to that band's limit (1 week/s at the telescope is a blur); a faster
-    // speed picked afterwards is left alone.
-    const cap = s.mode === 'eye' || w.L < LM + 4 ? 600 : w.L < 1.15 ? 3600 : w.L < 1.9 ? 86400 : Infinity;
-    if (cap < lastCap && (Math.abs(s.speed) > cap || Math.abs(s.lastSpeed) > cap)) {
-      const lim = (v: number) => Math.sign(v) * Math.min(Math.abs(v), cap);
-      settings.set({ speed: lim(s.speed), lastSpeed: lim(s.lastSpeed) });
-    }
-    lastCap = cap;
+    // Zooming in with the wheel slows time to the closer band's limit; fly-tos do it as they start.
+    if (!anim) { const cap = speedCap(w.L); if (cap < lastCap) limitSpeed(cap); lastCap = cap; }
 
     // Bodies
     const earthPos = sky.sunDirW.clone().multiplyScalar(-ORBIT_R);
@@ -808,7 +812,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (now - lastLive > 125) {
       lastLive = now;
       const r = axisRates(s);
-      const stop = s.mode === 'eye' ? 'eye' : STOPS.reduce((b, st) => (Math.abs((st.id === 'optics' ? opticsL() : st.L) - w.L) < Math.abs((b.id === 'optics' ? opticsL() : b.L) - w.L) ? st : b)).id;
+      // During a fly-to, report where it's going, so the ladder and the address show the destination.
+      const stop = s.mode === 'eye' ? 'eye' : anim ? anim.stop : STOPS.reduce((b, st) => (Math.abs((st.id === 'optics' ? opticsL() : st.L) - w.L) < Math.abs((b.id === 'optics' ? opticsL() : b.L) - w.L) ? st : b)).id;
       live.set({
         clock: new Date(time).toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
         lst: sky.h.lst, sunAlt: sky.sunH.alt, ra: sky.target.ra, dec: sky.target.dec, ha: sky.h.ha, alt: sky.h.alt, az: sky.h.az,

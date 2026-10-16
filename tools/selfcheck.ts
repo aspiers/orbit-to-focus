@@ -55,4 +55,19 @@ for (const [focal, aperture] of [[100, 20], [260, 50], [600, 120], [1200, 200], 
 }
 const pz = O.makeTelescope('petzval', true);
 near(pz.focalLength, 400, 12, 'Petzval focal length');
+
+// The address bar: settings survive a round trip, and junk is ignored.
+{
+  const { encodeState, decodeState } = await import('../src/url.ts');
+  const { settings } = await import('../src/store.ts');
+  const s0 = settings.get();
+  const s1 = { ...s0, lesson: 11, tab: 'scope' as const, speed: -3600, mountMode: 'eq' as const, telescope: 'refractor' as const, layers: { ...s0.layers, ground: true }, custom: { ...s0.custom, focal: 400 } };
+  const d = decodeState('#' + encodeState(s1, 'scope'));
+  assert.equal(d.lesson, 11); assert.equal(d.view, 'scope');
+  assert.deepEqual({ ...s0, ...d.patch, lesson: 11 }, s1);
+  assert.deepEqual(decodeState('#lat=999&scope=evil&speed=abc&layers=').patch, { layers: Object.fromEntries(Object.keys(s0.layers).map((k) => [k, false])) });
+  assert.equal(decodeState('#lesson7').lesson, 6);
+  assert.equal(decodeState('#scope=dobsonian&mount=eq').patch.mountMode, 'altaz');
+  assert.equal(encodeState(s0, 'solar'), '');
+}
 console.log('all checks passed');

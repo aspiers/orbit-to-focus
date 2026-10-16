@@ -5,6 +5,7 @@ import type { StopId } from './constants.ts';
 
 export type LayerId = 'eq' | 'ecl' | 'hor' | 'mer' | 'con' | 'names' | 'moonOrbit' | 'ground' | 'labels' | 'lat';
 export type Layers = Record<LayerId, boolean>;
+export type Tab = 'guide' | 'scope' | 'sky';
 
 // What the user (or a lesson) has chosen. The scene reads it every frame.
 export interface Settings {
@@ -13,7 +14,7 @@ export interface Settings {
   target: number; customRa: number; customDec: number; // radians
   mountMode: 'altaz' | 'eq'; tracking: boolean;
   telescope: TelescopeType; corrected: boolean; custom: CameraSpec; sensorPreset: number;
-  layers: Layers; lesson: number; mode: 'orbit' | 'eye';
+  layers: Layers; lesson: number; mode: 'orbit' | 'eye'; tab: Tab;
 }
 
 // What the scene reports back for the panels, refreshed a few times a second.
@@ -49,7 +50,7 @@ export const settings = createStore<Settings>({
   target: 0, customRa: 0, customDec: 0, mountMode: 'altaz', tracking: true,
   telescope: 'seestar', corrected: true, custom: SEESTAR, sensorPreset: 0,
   layers: { eq: true, ecl: true, hor: true, mer: true, con: true, names: true, moonOrbit: true, ground: false, labels: true, lat: false },
-  lesson: 0, mode: 'orbit',
+  lesson: 0, mode: 'orbit', tab: 'guide',
 });
 
 export const live = createStore<Live>({

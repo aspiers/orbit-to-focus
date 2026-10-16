@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createScene, type SceneApi } from '../scene/Scene.ts';
 import { applyLesson, LESSONS } from '../lessons.tsx';
+import { live, settings } from '../store.ts';
+import { decodeState, encodeState } from '../url.ts';
 import { Panel } from './Panel.tsx';
 import { EyeBox, Ladder, Readout, TimeBar } from './Hud.tsx';
 
@@ -12,10 +14,26 @@ export function App() {
   useEffect(() => {
     const s = createScene(canvas.current!, labels.current!, eyeview.current!);
     setScene(s);
-    // A link ending #lesson5 opens that lesson directly.
-    const m = /^#lesson(\d+)$/.exec(location.hash);
-    applyLesson(m ? Math.min(LESSONS.length, Math.max(1, +m[1])) - 1 : 0, s);
+    // The address reopens a guide, then the view, then whatever was changed since (last, so the time
+    // speed limit for the view doesn't override a speed in the address).
+    const u = decodeState(location.hash);
+    applyLesson(Math.min(LESSONS.length - 1, u.lesson ?? 0), s);
+    if (u.view === 'eye') s.standHere();
+    else if (u.view) s.goTo(u.view);
+    settings.set(u.patch);
     return s.dispose;
+  }, []);
+
+  // Keep the address in step, replacing the history entry rather than adding one per change.
+  useEffect(() => {
+    let last = location.hash.replace(/^#/, '');
+    const write = () => {
+      const h = encodeState(settings.get(), live.get().stop);
+      if (h !== last) history.replaceState(null, '', h ? `#${h}` : location.pathname + location.search);
+      last = h;
+    };
+    const unsubs = [settings.subscribe(write), live.subscribe(write)];
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   // Centre the 3D view in the part of the screen the panels leave uncovered.
