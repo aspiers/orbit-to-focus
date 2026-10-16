@@ -70,7 +70,7 @@ The managed Beads block is task-tracking guidance, not permission to override re
 
 - **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
 - **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
-- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates and commit as part of session close; in this repository they never push unless the user explicitly asks. A current "do not commit" or "do not push" instruction still wins.
 
 ## Session Completion
 
@@ -84,9 +84,8 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
    # Conservative/minimal/default: report status and proposed commands; wait for approval.
    git status
 
-   # Team-maintainer opt-in only, unless current instructions forbid it:
-   git pull --rebase
-   git push
+   # Team-maintainer (this repository): commit atomically, but never pull,
+   # push or sync unless the user explicitly asks.
    git status
    ```
 5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
