@@ -29,9 +29,14 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   const axes = { a: 0, b: 0 };
   let tilt = 0, slewing = true;
   // A fly-to: L moves smoothly in log space; yaw and pitch are pulled toward their goals in the destination frame.
-  let anim: { t: number; e: number; dur: number; fromL: number; to: typeof cam } | null = null;
+  // A `climb` zooms out over the first 60% of the time and turns over the last 55%, so it doesn't swing round while
+  // skimming over the ground.
+  let anim: { t: number; g: number; h: number; climb: boolean; dur: number; fromL: number; to: typeof cam } | null = null;
   let frameL = cam.L; // the zoom level that cam.yaw/pitch are currently expressed for
-  let free = false;   // a set-piece view (the meridian slice): no descent rules until the user moves
+  // A set-piece view (the meridian slice) lifts the descent rules until the user zooms. `fr` eases in
+  // and out so neither arriving nor leaving jolts, and is held off near the ground so the climb out is the
+  // ordinary descent in reverse.
+  let freeGoal = false, fr = 0;
   const pts = new Map<number, [number, number]>(); // pointers currently down on the canvas
   let shift = { dx: 0, dy: 0 };
 
@@ -311,7 +316,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   function goTo(stop: StopId, opts: { yaw?: number; pitch?: number } = {}) {
     const st = STOPS.find((x) => x.id === stop)!;
     settings.set({ mode: 'orbit' });
-    free = false;
+    freeGoal = false;
     let yaw = cam.yaw;
     if (opts.yaw === undefined && (stop === 'optics' || stop === 'focus')) yaw = 0;
   else if (opts.yaw !== undefined) yaw = opts.yaw * D2R;
@@ -319,7 +324,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (opts.yaw === undefined && (stop === 'site' || stop === 'scope') && sky.h) yaw = -sky.h.az + 0.2;
     const L = stop === 'optics' ? opticsL() : st.L;
     // Longer journeys take longer, so no stretch of the zoom rushes past.
-    anim = { t: 0, e: 0, dur: clamp(0.9 + 0.32 * Math.abs(L - cam.L), 1.2, 3.4), fromL: cam.L, to: { L, yaw, pitch: (opts.pitch ?? st.pitch) * D2R } };
+    anim = { t: 0, g: 0, h: 0, climb: false, dur: clamp(0.9 + 0.32 * Math.abs(L - cam.L), 1.2, 3.4), fromL: cam.L, to: { L, yaw, pitch: (opts.pitch ?? st.pitch) * D2R } };
   }
   // Your site's orientation in space, worked out from the settings so it works before the first frame.
   function siteQuaternion(st: Settings, out: THREE.Quaternion) {
@@ -335,12 +340,15 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const east = V(1, 0, 0).applyQuaternion(qs);
     const local = east.applyQuaternion(qs.slerp(qWorld, fWorldAt(L)).invert());
     goTo('earth');
-    free = true;
-    anim!.to = { L, yaw: Math.atan2(local.x, local.z), pitch: Math.asin(clamp(local.y, -1, 1)) };
+    freeGoal = true;
+    const a = anim!;
+    a.to = { L, yaw: Math.atan2(local.x, local.z), pitch: Math.asin(clamp(local.y, -1, 1)) };
+    // From the ground: rise straight up first, and only swing round to the side once the whole Earth is in view.
+    if (a.fromL < -0.3) { a.climb = true; a.dur += 2; }
   }
   // Yaw 0 faces south, 180 faces north.
   function standHere(yawDeg = 0, pitchDeg = 30) {
-    free = false;
+    freeGoal = false;
     settings.set({ mode: 'eye' });
     eye.yaw = yawDeg * D2R; eye.pitch = pitchDeg * D2R;
   }
@@ -381,11 +389,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const horizonElev = -Math.acos(Math.min(1, 1 / r));
     const need = horizonElev + Math.atan(low * Math.tan((camera.fov * D2R) / 2));
     const elev = Math.asin(clamp(fwd.dot(up), -1, 1));
-    if (elev >= need) return;
-    const axis = V().crossVectors(fwd, up).normalize();
-    fwd.applyAxisAngle(axis, (need - elev) * k);
-    camera.up.copy(up);
-    camera.lookAt(tmp.copy(camera.position).add(fwd));
+    // Pitch about the camera's own right axis: the axis from fwd x up is noise when looking straight down.
+    if (elev < need) camera.rotateX((need - elev) * k);
   }
 
   const qA = new THREE.Quaternion(), qB = new THREE.Quaternion();
@@ -425,24 +430,28 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       cam.pitch += (anim.to.pitch - cam.pitch) * pull;
     }
     // The descent floor is approached quickly but never snapped to, so leaving a set-piece view doesn't jolt.
-    const floor = free ? -Infinity : pitchFloor(L), ceiling = free ? Infinity : pitchCeiling(L), ease = 1 - Math.exp(-dt * 8);
+    const ease = 1 - Math.exp(-dt * 8);
+    fr += ((freeGoal ? smooth(L, -0.6, 0.5) : 0) - fr) * (1 - Math.exp(-dt * 3));
+    const floor = pitchFloor(L) * (1 - fr), ceiling = anim?.climb ? Infinity : pitchCeiling(L);
     if (cam.pitch < floor) cam.pitch += (floor - cam.pitch) * ease;
     if (cam.pitch > ceiling) cam.pitch += (ceiling - cam.pitch) * ease;
     // Landing also turns you to stand behind the telescope, facing its target (not while being dragged).
-    if (!free && !anim && pts.size === 0 && isFinite(ceiling)) cam.yaw += wrapPi(-sky.h.az + 0.2 - cam.yaw) * ease;
+    if (!anim && pts.size === 0 && isFinite(ceiling)) cam.yaw += wrapPi(-sky.h.az + 0.2 - cam.yaw) * ease;
     // Zooming from the telescope into the tube eases round to the side-on cut-away, clear of the tripod.
-    if (!free && !anim && pts.size === 0 && L < LM + 0.3 && L > LM - 0.3) {
+    if (!anim && pts.size === 0 && L < LM + 0.3 && L > LM - 0.3) {
       cam.yaw += wrapPi(-cam.yaw) * ease;
       cam.pitch += -cam.pitch * ease;
     }
     cam.pitch = clamp(cam.pitch, -1.5, 85 * D2R);
     const fWorld = fWorldAt(L), fSite = fSiteAt(L);
+    // A climb lets go of the ground-level framing early, before the lift gets going.
+    const climbing = anim?.climb ? smooth(anim.t, 0, 0.25) : 0;
     // What the camera looks at: the focus, the tube, your site, the Earth's centre or the Sun.
     // Between the Earth and your site the target stays far enough below the camera that the camera is
     // always above the ground (it sits at 1 + 0.2 d from the Earth's centre while looking down).
     const tFocus = 1 - smooth(L, LM - 1.6, LM - 0.8), tSun = smooth(L, 1.9, 2.8);
     // After landing (below about 60 m) it is exactly your site.
-    const tGround = free ? 0 : clamp(1 - 0.8 * d * landing(L), 0, 1);
+    const tGround = clamp(1 - 0.8 * d * landing(L), 0, 1);
     const target = anchor.optics.clone().lerp(anchor.focus, tFocus).lerp(anchor.site, fSite);
     target.copy(anchor.earth.clone().lerp(target, tGround)).lerp(V(), tSun);
     frameQ(L, qTmp);
@@ -452,11 +461,12 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const minR = 1 + (w.opt > 0.5 ? -Infinity : 0.12 * METRE);
     if (fromEarth.length() < minR) camera.position.copy(anchor.earth).add(fromEarth.setLength(minR));
     // Near the Earth, keep the horizon level: 'up' is your local vertical, even beside the tube.
-    camera.up.set(0, 1, 0).applyQuaternion(qTmp).lerp(sky.upW, 1 - fWorld).normalize();
+    // In the meridian slice, Earth's axis points up the screen so the equator runs left to right.
+    camera.up.set(0, 1, 0).applyQuaternion(qTmp).lerp(sky.upW, 1 - fWorld).lerp(tmp.set(0, 1, 0).applyQuaternion(eqToWorld), fr).normalize();
     camera.lookAt(target);
     camera.fov = 50;
     // On the ground, frame the telescope and its target star together.
-    const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (1 - smooth(L, LM + 1.2, LM + 2.0));
+    const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
     if (kFrame > 0 && sky.h.alt > -0.05) {
       camera.getWorldDirection(fwd);
       dT.copy(anchor.scope).sub(camera.position).normalize();
@@ -468,7 +478,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     }
     // Keep a band of sky in view all the way down: high up the horizon may sit near the top of the screen;
     // on the ground it must be in the bottom 15%.
-    keepGroundLow(fSite * (1 - fWorld) * (1 - w.opt), lerp(0.7, -0.55, smooth(L, LM + 1.8, LM + 2.6)));
+    keepGroundLow(fSite * (1 - fWorld) * (1 - w.opt) * (1 - fr) * (1 - climbing), lerp(0.7, -0.55, smooth(L, LM + 1.8, LM + 2.6)));
     camera.near = d * 2e-3; camera.far = Math.max(d * 1e4, 3000);
   }
 
@@ -628,10 +638,18 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     let pull = 0;
     if (anim) {
       anim.t = Math.min(1, anim.t + dt / anim.dur);
-      const e = 0.5 - 0.5 * Math.cos(Math.PI * anim.t);
+      const ease = (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(t, 0, 1));
+      const e = ease(anim.climb ? anim.t / 0.6 : anim.t);
       // Fraction of the remaining yaw/pitch turn to make this frame, so both arrive exactly at the end.
-      pull = anim.e < 1 ? (e - anim.e) / (1 - anim.e) : 1;
-      anim.e = e;
+      const g = anim.climb ? ease((anim.t - 0.45) / 0.55) : e;
+      pull = anim.g < 1 ? (g - anim.g) / (1 - anim.g) : 1;
+      anim.g = g;
+      // A climb first tilts down gently to look straight down on your site, ahead of the descent rule's quicker tilt.
+      if (anim.climb && anim.h < 1) {
+        const h = ease(anim.t / 0.42);
+        cam.pitch += (85 * D2R - cam.pitch) * ((h - anim.h) / (1 - anim.h));
+        anim.h = h;
+      }
       cam.L = lerp(anim.fromL, anim.to.L, e);
     }
     computeSky(s);
@@ -710,7 +728,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     setAlpha(wedgeArc, Ly.lat && s.mountMode === 'eq' && Math.abs(tilt) > 0.01 ? w.scope * (1 - w.opt) : 0);
     // Ground and Earth: hidden inside the tube, faint when "see through the ground" is on.
     const seeThrough = Ly.ground && w.site > 0.5;
-    const groundAlpha = (seeThrough ? 0.25 : 1) * (1 - smooth(w.opt, 0, 0.4));
+    const groundAlpha = (seeThrough ? 0.25 : 1) * (1 - smooth(w.opt, 0, 0.4)) * smooth(w.site, 0, 0.8); // fades into the map from above
     groundMat.uniforms.opacity.value = groundAlpha;
     groundMat.uniforms.light.value = 1 + 1.6 * daylight;
     groundMat.depthWrite = groundAlpha > 0.9;
@@ -756,9 +774,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   let pinch = 0;
   const zoomBy = (dL: number) => {
     if (S().mode === 'eye') eye.fov = clamp(eye.fov * 10 ** dL, 4, 110);
-    else cam.L = clamp(cam.L + dL, LM - 2.4, 3.3);
+    else { cam.L = clamp(cam.L + dL, LM - 2.4, 3.3); freeGoal = false; }
   };
-  const onDown = (e: PointerEvent) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); anim = null; free = false; };
+  const onDown = (e: PointerEvent) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); anim = null; };
   const onUp = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
   const onMove = (e: PointerEvent) => {
     const p0 = pts.get(e.pointerId);
@@ -778,7 +796,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       cam.yaw -= dx * 0.006; cam.pitch = clamp(cam.pitch + dy * 0.006, -1.5, 1.5);
     }
   };
-  const onWheel = (e: WheelEvent) => { e.preventDefault(); anim = null; free = false; zoomBy(e.deltaY * (e.deltaMode ? 0.05 : 0.0016)); };
+  const onWheel = (e: WheelEvent) => { e.preventDefault(); anim = null; zoomBy(e.deltaY * (e.deltaMode ? 0.05 : 0.0016)); };
   const onKey = (e: KeyboardEvent) => {
     const k = ({ ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.08], ArrowDown: [0, -0.08] } as Record<string, [number, number]>)[e.key];
     if (k) { cam.yaw += k[0]; cam.pitch = clamp(cam.pitch + k[1], -1.5, 1.5); e.preventDefault(); }
