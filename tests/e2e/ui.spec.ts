@@ -16,6 +16,7 @@ const apart: [string, string, number][] = [
   ['#timebar', '#ladder > *', 0], // a time bar wrapping onto another row once hid it behind the zoom buttons
   ['#timebar', '#panel', 12],
   ['#ladder > *', '#eyebox', 0], // the zoom buttons and scale note on short screens
+  ['#timebar', '#eyebox', 0], // the camera view sits below the time bar on phones
 ];
 
 test.describe('controls', () => {

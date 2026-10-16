@@ -165,7 +165,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #ladder .eye-btn { margin-top: 0; }
   #readout { left: max(var(--gap), env(safe-area-inset-left, 0px)); right: max(var(--gap), env(safe-area-inset-right, 0px)); bottom: calc(46vh + 8px); padding: 6px 10px; gap: 2px 10px; }
   #readout .name { font-size: 15px; }
-  #eyebox { top: 104px; bottom: auto; width: 124px; padding: 6px; }
+  /* Below the time bar however many rows it wraps onto; 104px is for browsers without anchor positioning. */
+  #eyebox { top: 104px; top: calc(anchor(--timebar bottom) + 8px); bottom: auto; width: 124px; padding: 6px; }
   #eyebox canvas { width: 112px; height: 112px; }
   #eyeCaption { display: none; }
   body:has(#panel.closed) #ladder { bottom: 110px; }
