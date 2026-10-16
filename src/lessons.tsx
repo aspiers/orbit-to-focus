@@ -162,6 +162,13 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
+    title: 'Other designs: Dobsonian', view: { stop: 'scope' }, speed: MIN10, telescope: 'dobsonian', mountMode: 'altaz', corrected: true, tracking: true, target: 'Vega',
+    body: <>
+      <p>A <b>Dobsonian</b> is a Newtonian on the simplest possible mount: a wooden <b>rocker box</b>. The box turns on a board on the ground (azimuth), and the tube tilts on two bearings in its sides (altitude). This one is 150 mm f/5, like a small tabletop Dobsonian.</p>
+      <p>Without a motorised mount, the money goes into the mirror instead, so a Dobsonian gives the most aperture for the price. Most are pushed by hand to follow a star, which is fine for looking through an eyepiece but not for long camera exposures. Being alt-az, they can’t go on an equatorial wedge.</p>
+    </>,
+  },
+  {
     title: 'Other designs: Schmidt-Cassegrain', view: { stop: 'optics' }, speed: MIN10, telescope: 'sct', corrected: true, tracking: true,
     body: <>
       <p>A <b>Schmidt-Cassegrain</b> folds a long focal length into a short tube. Light passes a thin <b>corrector plate</b>, bounces off a spherical main mirror, then off a small convex mirror that sends it back through a hole in the main mirror. The small mirror stretches the focal length about five times.</p>

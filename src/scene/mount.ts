@@ -18,7 +18,7 @@ export function roundedRect(w: number, h: number, r: number, cx = 0, cy = 0) {
 export const extrude = (shape: THREE.Shape, depth: number, bevel = 4) =>
   new THREE.ExtrudeGeometry(shape, { depth: depth - 2 * bevel, bevelEnabled: true, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 3, curveSegments: 16 }).translate(0, 0, bevel);
 
-export type MountKind = 'seestar' | 'generic';
+export type MountKind = 'seestar' | 'dobsonian' | 'generic';
 
 export interface Mount {
   root: THREE.Group; wedge: THREE.Group; axisA: THREE.Group; axisB: THREE.Group;
@@ -34,9 +34,9 @@ export interface Mount {
 export function buildMount(kind: MountKind, scopeHalfWidthM: number): Mount {
   const root = new THREE.Group(), wedge = new THREE.Group(), axisA = new THREE.Group(), axisB = new THREE.Group();
   const black = translucent(0x1d2026), white = translucent(0xf1f1ec, { roughness: 0.7 }), metal = translucent(0x9aa3b5, { metalness: 0.6, roughness: 0.4 });
-  const seestar = kind === 'seestar';
-  const head = seestar ? 0.32 : 1.0, spread = seestar ? 0.17 : 0.45;
-  for (let i = 0; i < 3; i++) {
+  const seestar = kind === 'seestar', dob = kind === 'dobsonian';
+  const head = seestar ? 0.32 : dob ? 0 : 1.0, spread = seestar ? 0.17 : 0.45;
+  for (let i = 0; i < (dob ? 0 : 3); i++) {
     const a = (i / 3) * Math.PI * 2 + 0.5, foot = V(Math.cos(a) * spread, 0, Math.sin(a) * spread), top = V(0, head - 0.02, 0);
     const len = foot.distanceTo(top), q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), top.clone().sub(foot).normalize());
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(seestar ? 0.008 : 0.014, seestar ? 0.01 : 0.017, len, 10), seestar ? black : metal);
@@ -48,11 +48,11 @@ export function buildMount(kind: MountKind, scopeHalfWidthM: number): Mount {
       root.add(grip);
     }
   }
-  root.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.04, 20), black), 0, head - 0.02, 0));
+  if (!dob) root.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.04, 20), black), 0, head - 0.02, 0));
   wedge.position.y = head;
   root.add(wedge);
-  wedge.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.012, 0.07), black), 0, 0.006, 0));
-  axisA.position.y = 0.012;
+  if (!dob) wedge.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.012, 0.07), black), 0, 0.006, 0));
+  axisA.position.y = dob ? 0.03 : 0.012;
   wedge.add(axisA);
   axisA.add(axisB);
   let anchorHeight: number, eye: THREE.Vector3, scopeOffset: THREE.Vector3;
@@ -77,6 +77,23 @@ export function buildMount(kind: MountKind, scopeHalfWidthM: number): Mount {
     scopeOffset = V(-0.008 - scopeHalfWidthM, 0, -0.012);
     anchorHeight = head + 0.17;
     eye = V(-0.9, 1.6, 1.1);
+  } else if (dob) {
+    // Rocker box: a ground board that stays put, and a box that turns on it holding the tube on two altitude
+    // bearings, high enough for the tube to clear the base when it points straight up.
+    const wood = translucent(0x9a7650);
+    root.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.025, 40), wood), 0, 0.0125, 0));
+    const side = scopeHalfWidthM + 0.035;
+    axisA.add(at(new THREE.Mesh(new THREE.BoxGeometry(2 * side + 0.02, 0.02, 0.34), wood), 0, 0.01, 0));
+    for (const x of [-side, side]) {
+      axisA.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.5, 0.32), wood), x, 0.25, 0));
+      axisB.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.025, 28).rotateZ(Math.PI / 2), black), x - Math.sign(x) * 0.023, 0, 0));
+    }
+    axisA.add(at(new THREE.Mesh(new THREE.BoxGeometry(2 * side, 0.18, 0.02), wood), 0, 0.09, 0.15));
+    axisB.position.set(0, 0.47, 0);
+    scopeOffset = V(0, 0, 0);
+    anchorHeight = 0.47;
+    eye = V(-1.3, 1.6, 1.5);
+    return { root, wedge, axisA, axisB, materials: [black, white, metal, wood], anchorHeight, eye, scopeOffset };
   } else {
     const turntable = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.085, 0.05, 32), black);
     axisA.add(at(turntable, 0, 0.025, 0));

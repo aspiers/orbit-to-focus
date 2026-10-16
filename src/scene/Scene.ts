@@ -193,7 +193,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const s = S();
     scope = makeTelescope(s.telescope, s.corrected, s.custom);
     if (mount) mountHolder.remove(mount.root);
-    mount = buildMount(scope.seestarBody ? 'seestar' : 'generic', scopeHalfWidth(scope));
+    mount = buildMount(scope.seestarBody ? 'seestar' : scope.type === 'dobsonian' ? 'dobsonian' : 'generic', scopeHalfWidth(scope));
     mountHolder.add(mount.root);
     model = buildScopeModel(scope);
     model.group.position.copy(mount.scopeOffset);
@@ -482,8 +482,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       dT.copy(anchor.scope).sub(camera.position).normalize();
       const spread = dT.angleTo(sky.targetDirW);
       let fov = 50;
-      while (fov < 110 && Math.atan(0.6 * Math.tan((fov * D2R) / 2)) + Math.atan(0.85 * Math.tan((fov * D2R) / 2)) < spread) fov += 2;
-      const lift = Math.atan(0.6 * Math.tan((fov * D2R) / 2)); // puts the telescope 60% of the way down from the centre
+      while (fov < 110 && Math.atan(0.5 * Math.tan((fov * D2R) / 2)) + Math.atan(0.85 * Math.tan((fov * D2R) / 2)) < spread) fov += 2;
+      const lift = Math.atan(0.5 * Math.tan((fov * D2R) / 2)); // puts the telescope halfway down from the centre
       fwd.lerp(dT.clone().applyAxisAngle(tmp.crossVectors(dT, sky.upW).normalize(), lift), kFrame).normalize();
       camera.fov = lerp(50, fov, kFrame);
       camera.up.copy(sky.upW);

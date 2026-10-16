@@ -29,7 +29,7 @@ export interface Conic {
 export interface Plane { type: 'plane'; mode: 'mirror' | 'absorb' | 'lens'; c: Vec2; n: Vec2; half: number; f?: number }
 export interface Corrector { type: 'corrector'; mode: 'bend'; u0: number; half: number; delta: (y: number) => number }
 export type Surface = Conic | Plane | Corrector;
-export type TelescopeType = 'seestar' | 'refractor' | 'newtonian' | 'sct' | 'petzval';
+export type TelescopeType = 'seestar' | 'refractor' | 'newtonian' | 'dobsonian' | 'sct' | 'petzval';
 export interface CameraSpec { focal: number; aperture: number; sensor: Vec2 }
 
 export interface Telescope {
@@ -209,6 +209,8 @@ function cameraRefractor(corrected: boolean, { focal, aperture, sensor }: Camera
 // Builds a telescope. `corrected` switches on the part that removes the design's main aberration.
 // `custom` sets focal length, aperture and sensor size for the Seestar-style camera refractor.
 export function makeTelescope(type: TelescopeType, corrected: boolean, custom: CameraSpec = SEESTAR): Telescope {
+  // A Dobsonian is a Newtonian on a simple alt-az rocker box: 150 mm f/5, like the tabletop Sky-Watcher Heritage 150P.
+  if (type === 'dobsonian') return { ...makeTelescope('newtonian', corrected), type, name: 'Dobsonian', color: 0xeeeeea };
   let t: Draft;
   if (type === 'seestar') t = cameraRefractor(corrected, custom);
   else if (type === 'refractor') {

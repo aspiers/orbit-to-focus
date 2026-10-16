@@ -4,7 +4,7 @@ An interactive 3D explainer for new astronomers: zoom continuously from Earth's 
 through the Earth, Moon and celestial sphere, down to a Seestar S50 Pro on its tripod and the light
 rays focusing inside it. Guided lessons cover the ecliptic, axial tilt, RA/Dec, alt-az, the meridian,
 why a polar axis tilts by your latitude, equatorial mode, tracking, aperture, focal length, f-numbers,
-and four other telescope designs (Petzval, refractor, Newtonian, Schmidt-Cassegrain).
+and five other telescope designs (Petzval, refractor, Newtonian, Dobsonian, Schmidt-Cassegrain).
 
 TypeScript + React for the interface, three.js for the scene, built with Vite into one HTML file.
 

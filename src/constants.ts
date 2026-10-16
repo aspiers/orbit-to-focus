@@ -49,5 +49,5 @@ export const SENSORS: [string, number, number][] = [
 
 export const TELESCOPES: [TelescopeType, string][] = [
   ['seestar', 'Seestar S50 Pro'], ['petzval', 'Petzval astrograph'], ['refractor', 'Refractor'],
-  ['newtonian', 'Newtonian'], ['sct', 'Schmidt-Cassegrain'],
+  ['newtonian', 'Newtonian'], ['dobsonian', 'Dobsonian'], ['sct', 'Schmidt-Cassegrain'],
 ];

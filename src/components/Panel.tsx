@@ -55,6 +55,7 @@ const CORRECTION: Record<TelescopeType, [string, string]> = {
   petzval: ['Achromatic doublets (correct colour)', 'Swap in single lenses to see colour fringing'],
   refractor: ['Achromatic doublet', 'Swap in a single lens to see colour fringing'],
   newtonian: ['Parabolic mirror', 'Swap in a spherical mirror to see spherical aberration'],
+  dobsonian: ['Parabolic mirror', 'Swap in a spherical mirror to see spherical aberration'],
   sct: ['Schmidt corrector plate', 'Remove the corrector to see spherical aberration'],
 };
 
@@ -77,7 +78,7 @@ function TelescopeTab() {
         <legend>Telescope</legend>
         <div className="row">
           {TELESCOPES.map(([id, name]) => (
-            <label key={id}><input type="radio" name="scope" checked={s.telescope === id} onChange={() => settings.set({ telescope: id })} /> {name}</label>
+            <label key={id}><input type="radio" name="scope" checked={s.telescope === id} onChange={() => settings.set(id === 'dobsonian' ? { telescope: id, mountMode: 'altaz' } : { telescope: id })} /> {name}</label>
           ))}
         </div>
         <div className="facts">
@@ -123,8 +124,9 @@ function TelescopeTab() {
         <legend>Mount</legend>
         <div className="row">
           <label><input type="radio" name="mount" checked={!eq} onChange={() => settings.set({ mountMode: 'altaz' })} /> Alt-az mode</label>
-          <label><input type="radio" name="mount" checked={eq} onChange={() => settings.set({ mountMode: 'eq' })} /> Equatorial mode (on a wedge)</label>
+          <label><input type="radio" name="mount" checked={eq} disabled={s.telescope === 'dobsonian'} onChange={() => settings.set({ mountMode: 'eq' })} /> Equatorial mode (on a wedge)</label>
         </div>
+        {s.telescope === 'dobsonian' && <p className="hint">A Dobsonian’s rocker box only turns in altitude and azimuth.</p>}
         <div className="row">
           <label><input type="checkbox" checked={s.tracking} onChange={(e) => settings.set({ tracking: e.target.checked })} /> Track the target</label>
           <span className="kv">{offAxis < 0.01 ? 'on axis' : offAxis < 1 ? `${(offAxis * 60).toFixed(1)}′ off axis` : `${offAxis.toFixed(1)}° off axis`}</span>
