@@ -38,6 +38,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   // ordinary descent in reverse.
   let freeGoal = false, fr = 0;
   const pts = new Map<number, [number, number]>(); // pointers currently down on the canvas
+  // Render at full rate only while something is moving: input, a fly-to, a slew, and the eases that follow.
+  let activeUntil = 0;
+  const wake = () => { activeUntil = performance.now() + 1500; };
   let shift = { dx: 0, dy: 0 };
 
   // ---------- renderer & scenes ----------
@@ -627,7 +630,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   let lastFrame = performance.now(), lastLive = 0, raf = 0;
   // prev moves on before the handler runs: the handler can set settings again (goTo does), and must not see
   // the same change twice.
-  const unsub = settings.subscribe(() => { const s = S(), p = prev; prev = s; if (s !== p) onSettings(s, p); });
+  const unsub = settings.subscribe(() => { const s = S(), p = prev; prev = s; wake(); if (s !== p) onSettings(s, p); });
   let prev = S();
   function onSettings(s: Settings, p: Settings) {
     if (s.telescope !== p.telescope || s.corrected !== p.corrected || s.custom !== p.custom) {
@@ -642,6 +645,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
     const s = S();
+    // At most 60 fps (high-refresh screens), 30 fps while only time is running, nothing while paused and idle.
+    const busy = anim || slewing || pts.size > 0 || now < activeUntil;
+    if (now - lastFrame < (busy ? 14 : 30) || (!busy && s.speed === 0)) return;
     // rAF timestamps can trail performance.now(), so the first step can come out negative.
     const dt = clamp((now - lastFrame) / 1000, 0, 0.1);
     lastFrame = now;
@@ -689,7 +695,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     scene.updateMatrixWorld(true);
     sky.upW.set(0, 1, 0).applyQuaternion(site.getWorldQuaternion(qTmp));
     placeCamera(w, s, pull, dt);
-    if (anim && anim.t >= 1) anim = null;
+    if (anim && anim.t >= 1) { anim = null; wake(); }
     for (const c of [camera, bgCamera]) c.setViewOffset(canvas.clientWidth, canvas.clientHeight, -shift.dx, shift.dy, canvas.clientWidth, canvas.clientHeight);
     bgCamera.quaternion.copy(camera.quaternion);
     bgCamera.fov = camera.fov;
@@ -798,12 +804,13 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (S().mode === 'eye') eye.fov = clamp(eye.fov * 10 ** dL, 4, 110);
     else { cam.L = clamp(cam.L + dL, LM - 2.4, 3.3); freeGoal = false; }
   };
-  const onDown = (e: PointerEvent) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); anim = null; };
+  const onDown = (e: PointerEvent) => { wake(); canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); anim = null; };
   const onUp = (e: PointerEvent) => { pts.delete(e.pointerId); pinch = 0; };
   const onMove = (e: PointerEvent) => {
     const p0 = pts.get(e.pointerId);
     if (!p0) return;
     pts.set(e.pointerId, [e.clientX, e.clientY]);
+    wake();
     if (pts.size === 2) {
       const [a, b] = [...pts.values()], dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
       if (pinch) zoomBy((pinch - dist) * 0.006);
@@ -818,8 +825,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       cam.yaw -= dx * 0.006; cam.pitch = clamp(cam.pitch + dy * 0.006, -1.5, 1.5);
     }
   };
-  const onWheel = (e: WheelEvent) => { e.preventDefault(); anim = null; zoomBy(e.deltaY * (e.deltaMode ? 0.05 : 0.0016)); };
+  const onWheel = (e: WheelEvent) => { e.preventDefault(); wake(); anim = null; zoomBy(e.deltaY * (e.deltaMode ? 0.05 : 0.0016)); };
   const onKey = (e: KeyboardEvent) => {
+    wake();
     const k = ({ ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.08], ArrowDown: [0, -0.08] } as Record<string, [number, number]>)[e.key];
     if (k) { cam.yaw += k[0]; cam.pitch = clamp(cam.pitch + k[1], -1.5, 1.5); e.preventDefault(); }
     if (e.key === '+' || e.key === '=') zoomBy(-0.15);
@@ -832,6 +840,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('keydown', onKey);
   const resize = () => {
+    wake();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     camera.aspect = bgCamera.aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
   };
@@ -845,9 +854,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
 
   return {
     goTo, standHere, faceSiteMeridian,
-    setTime: (ms) => { time = ms; },
+    setTime: (ms) => { time = ms; wake(); },
     getTime: () => time,
-    setViewShift: (dx, dy) => { shift = { dx, dy }; },
+    setViewShift: (dx, dy) => { shift = { dx, dy }; wake(); },
     dispose: () => {
       cancelAnimationFrame(raf); unsub(); ro.disconnect();
       canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointerup', onUp);
