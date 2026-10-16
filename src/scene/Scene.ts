@@ -605,7 +605,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   label('Celestial equator', 'l-eq', (v) => tilt3.localToWorld(v.set(SHELL_R * 0.72, 0, SHELL_R * 0.72)), () => (lay('eq') ? W8.earth : 0));
   label('Ecliptic', 'l-ecl', (v) => earthSys.localToWorld(v.copy(sky.sunDirW).applyAxisAngle(V(0, 1, 0), 1.2).multiplyScalar(SHELL_R)), () => (lay('ecl') ? W8.earth : 0));
   label('Sun’s direction', 'l-sun', (v) => shellSun.getWorldPosition(v), () => W8.earth * 0.8);
-  label('Earth’s axis', 'l-axis', (v) => tilt3.localToWorld(v.set(0, 1.9 * axisLine.scale.y, 0)), () => Math.max(W8.earth, W8.sol));
+  // While the meridian slice is shown, at the end away from the pole, so it misses the mount's polar axis label.
+  label('Earth’s axis', 'l-axis', (v) => tilt3.localToWorld(v.set(0, (lay('lat') && S().lat >= 0 ? -1.9 : 1.9) * axisLine.scale.y, 0)), () => Math.max(W8.earth, W8.sol));
   label('You', 'l-brass', (v) => sitePin.getWorldPosition(v), () => Math.max(W8.earth, W8.moon) * 0.95);
   // Hidden with the horizon disc while the meridian slice draws its own horizon.
   label('Your horizon', 'l-hor', (v) => siteBig.localToWorld(v.set(1.1, 0, 1.1)), () => (lay('hor') && !lay('lat') ? W8.earth : 0));
@@ -616,7 +617,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   latLbl(latText, 'l-angle', (v) => v.copy(latPts.centre));
   latLbl(latText, 'l-angle', (v) => v.copy(latPts.site));
   latLbl('Equator', 'l-solar', (v) => v.copy(vec(sphToVec(S().lon, 0))).multiplyScalar(1.6));
-  latLbl('Zenith (straight up)', 'l-hor', (v) => v.copy(vec(sphToVec(S().lon, S().lat))).multiplyScalar(1.6));
+  // Below left of the line's end, so it misses the latitude label at your feet.
+  latLbl('Zenith (straight up)', 'l-hor below-left', (v) => v.copy(vec(sphToVec(S().lon, S().lat))).multiplyScalar(1.6));
   latLbl('Mount’s polar axis, parallel to Earth’s axis', 'l-eq', (v) => v.copy(latPts.axis));
   latLbl(() => `Horizon, looking ${S().lat < 0 ? 'south' : 'north'}`, 'l-hor', (v) => v.copy(latPts.horizon));
   label(() => `polar axis tilt = latitude = ${(Math.abs(S().lat) * R2D).toFixed(1)}°`, 'l-angle', (v) => site.localToWorld(v.set(0, mount.wedge.position.y + 0.12, poleSide(S().lat) * 0.36)), () => (lay('lat') && S().mountMode === 'eq' ? W8.scope * (1 - W8.opt) : 0));
@@ -626,7 +628,8 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   for (const [n, x, z] of [['N', 0, -1], ['E', 1, 0], ['S', 0, 1], ['W', -1, 0]] as const) skyLbl(n, 'l-hor big', siteDir(x, 0.02, z), () => (lay('hor') ? 1 : 0));
   skyLbl('Zenith', 'l-hor', siteDir(0, 1, 0), () => (lay('hor') ? 1 : 0));
   skyLbl('Meridian', 'l-mer', siteDir(0, Math.sin(1.1), Math.cos(1.1)), () => (lay('mer') ? 1 : 0));
-  skyLbl('North celestial pole', 'l-eq', () => V(0, 1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
+  // Below left of the pole, so it misses the label of Polaris, under a degree away and labelled above right.
+  skyLbl('North celestial pole', 'l-eq below-left', () => V(0, 1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
   // Below left of the pole, so it misses the label of Sigma Octantis, a degree away and labelled above right.
   skyLbl('South celestial pole', 'l-eq below-left', () => V(0, -1, 0).applyQuaternion(eqToWorld), () => (lay('eq') ? 1 : 0));
   skyLbl('Celestial equator', 'l-eq', () => { const d = V(0, 0, 1).applyQuaternion(bgSite.quaternion), e = V(0, 1, 0).applyQuaternion(eqToWorld); return d.sub(e.multiplyScalar(d.dot(e))).normalize(); }, () => (lay('eq') ? 1 : 0));
