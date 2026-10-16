@@ -514,8 +514,12 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
       camera.getWorldDirection(fwd);
       dT.copy(anchor.scope).sub(camera.position).normalize();
       const spread = dT.angleTo(sky.targetDirW);
-      let fov = 50;
-      while (fov < 110 && Math.atan(0.5 * Math.tan((fov * D2R) / 2)) + Math.atan(0.85 * Math.tan((fov * D2R) / 2)) < spread) fov += 2;
+      // The smallest view from 50 to 110 degrees that fits the star, found continuously (whole steps made the zoom jump).
+      const fits = (f: number) => Math.atan(0.5 * Math.tan((f * D2R) / 2)) + Math.atan(0.85 * Math.tan((f * D2R) / 2)) >= spread;
+      let lo = 50, hi = 110;
+      if (fits(lo)) hi = lo;
+      else for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+      const fov = hi;
       const lift = Math.atan(0.5 * Math.tan((fov * D2R) / 2)); // puts the telescope halfway down from the centre
       fwd.lerp(dT.clone().applyAxisAngle(tmp.crossVectors(dT, sky.upW).normalize(), lift), kFrame).normalize();
       camera.fov = lerp(50, fov, kFrame);
