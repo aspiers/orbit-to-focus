@@ -136,8 +136,11 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 #scaleNote { font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-top: 6px; overflow-y: auto; }
 
 /* Bottom: readout strip and camera view */
-#readout { position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: calc(348px + 2 * var(--gap)); right: calc(212px + 2 * var(--gap));
-  display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(8px); }
+#readout { position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); left: calc(348px + 2 * var(--gap)); right: calc(230px + 2 * var(--gap));
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; backdrop-filter: blur(8px); }
+/* The usual gap from the camera view however wide its padding, border and the safe area make it; 230px above is
+   for browsers without anchor positioning. The tighter spacing above keeps the values on one row at 1280 px. */
+#readout { right: calc(anchor(--eyebox left) + var(--gap)); }
 /* The name and horizon warning get a row of their own, so neither moves the values when the target changes. */
 #readout .title { flex-basis: 100%; display: flex; gap: 12px; align-items: baseline; }
 #readout .name { font: 600 18px var(--display); color: var(--accent); }

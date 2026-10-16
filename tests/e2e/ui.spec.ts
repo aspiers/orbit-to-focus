@@ -18,6 +18,7 @@ const apart: [string, string, number][] = [
   ['#ladder > *', '#eyebox', 0], // the zoom buttons and scale note on short screens
   ['#timebar', '#eyebox', 0], // the camera view sits below the time bar on phones
   ['#ladder > *', '#readout', 0], // on phones the readout wraps onto three rows
+  ['#readout', '#eyebox', 12], // the readout's fixed right edge once ignored the camera view's padding
 ];
 
 test.describe('controls', () => {
@@ -141,7 +142,7 @@ test.describe('controls', () => {
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
     // The time bar takes one row at 1280 px, two at 1024 and three at 900.
-    for (const [width, height] of [[1280, 800], [1280, 720], [1024, 768], [900, 700], [390, 844]]) {
+    for (const [width, height] of [[1920, 1080], [1280, 800], [1280, 720], [1024, 768], [900, 700], [390, 844]]) {
       await page.setViewportSize({ width, height });
       await page.waitForTimeout(300);
       for (const [a, b, gap] of apart) {
