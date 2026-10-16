@@ -586,7 +586,7 @@ function weights() {
   return {
     L,
     sol: smooth(L, 1.9, 2.5),
-    moon: smooth(L, 0.4, 1.0) * (1 - smooth(L, 2.5, 3.0)),
+    moon: smooth(L, 1.15, 1.4) * (1 - smooth(L, 2.5, 3.0)),
     earth: smooth(L, -1.6, -0.6) * (1 - smooth(L, 1.2, 1.45)),
     site: 1 - smooth(L, LM + 2.7, LM + 3.7),
     scope: 1 - smooth(L, LM + 2.0, LM + 2.6),
@@ -801,6 +801,7 @@ function frame(now) {
   setAlpha(sitePin, Math.max(w.earth, 0.001));
   if (moonOrbit) setAlpha(moonOrbit, L.moonOrbit ? Math.max(w.moon, w.sol * 0.8) : 0);
   setAlpha(axisLine, Math.max(w.earth, w.sol, w.moon) * 0.9);
+  axisLine.scale.y = 1 + 2.5 * w.sol; // long enough to see its fixed direction around the orbit
   if (!meridianShell.children.length) {
     meridianShell.add(polyline(circle(SHELL_R * 1.002, 256, (t) => V(Math.cos(t), Math.sin(t), 0).multiplyScalar(SHELL_R * 1.002)), lineMat(COLORS.mer, 0.8)));
   }
@@ -839,8 +840,7 @@ function frame(now) {
     const band = near === 'solar' ? 'solar' : near === 'moon' || near === 'earth' ? 'earth' : near === 'optics' || near === 'focus' ? 'optics' : 'site';
     $('scaleNote').textContent = SCALE_NOTES[band];
   }
-  window.__ote = { state, sky, scopeGroup, axisB, THREE, scene, ground, earth, camera };
-requestAnimationFrame(frame);
+  requestAnimationFrame(frame);
 }
 
 // ---------- labels: definitions ----------
@@ -941,6 +941,7 @@ function setLens(changes) {
   Object.assign(state.custom, changes);
   state.custom.aperture = Math.min(state.custom.aperture, Math.floor(state.custom.focal / 2.5));
   buildScope();
+  if (state.mode === 'orbit' && weights().opt > 0.5 && state.cam.L > LM - 1) goTo('optics'); // reframe the resized tube
 }
 function syncModeUI() {
   $('modeEye').setAttribute('aria-current', state.mode === 'eye' ? 'true' : 'false');
@@ -1171,5 +1172,4 @@ const startLesson = /^#lesson(\d+)$/.exec(location.hash);
 showLesson(startLesson ? +startLesson[1] - 1 : 0);
 if (!startLesson) state.cam = { L: 2.85, yaw: 0.6, pitch: 28 * D2R };
 else if (anim) anim.t = 0.999;
-window.__ote = { state, sky, scopeGroup, axisB, THREE, scene, ground, earth, camera };
 requestAnimationFrame(frame);

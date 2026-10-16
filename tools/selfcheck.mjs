@@ -46,10 +46,11 @@ const n = O.makeTelescope('newtonian', true);
 near(n.focalLength, 750, 1, 'Newtonian focal length');
 const sct = O.makeTelescope('sct', true);
 near(sct.focalLength, 2000, 150, 'SCT focal length');
-console.log('all checks passed');
+
 // Custom camera refractors keep their focal length and a sharp-ish focus across the slider range.
 for (const [focal, aperture] of [[100, 20], [260, 50], [600, 120], [1200, 200], [400, 140]]) {
   const c = O.makeTelescope('seestar', true, { focal, aperture, sensor: [10, 10] });
   near(c.focalLength, focal, focal * 0.04, `custom ${focal}/${aperture} focal length`);
   console.log(`custom ${focal} mm f/${(focal / aperture).toFixed(1)}: spread ${O.focusSpread(c).toFixed(3)} mm, colour ${O.chromaticShift(c).toFixed(3)} mm`);
 }
+console.log('all checks passed');
