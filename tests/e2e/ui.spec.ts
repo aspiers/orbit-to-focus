@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { ladder, open } from './helpers.ts';
 
 const speed = (page: Page) => page.locator('#speed');
@@ -6,7 +6,7 @@ const clock = (page: Page) => page.locator('#clock');
 
 type Box = { left: number; top: number; right: number; bottom: number };
 // The boxes of the elements a selector matches, leaving out hidden ones.
-const boxes = (page: Page, selector: string) => page.locator(selector).evaluateAll((els) => els
+const boxes = (page: Page, selector: string | Locator) => (typeof selector === 'string' ? page.locator(selector) : selector).evaluateAll((els) => els
   .map((e) => e.getBoundingClientRect()).filter((r) => r.width && r.height)
   .map(({ left, top, right, bottom }) => ({ left, top, right, bottom })));
 const fmt = (b: Box) => `[${[b.left, b.top, b.right, b.bottom].map(Math.round).join(', ')}]`;
@@ -224,10 +224,69 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
           expect.soft(m.small, `${where}: touch targets under 38 px`).toEqual([]);
           expect.soft(m.spill, `${where}: content outside its box`).toEqual([]);
           expect.soft(m.cue, `${where}: the zoom strip scrolls with no fade at its cut-off end`).toBe(true);
-          expect.soft(m.sky, `${where}: tallest clear band of sky, % of the screen`).toBeGreaterThanOrEqual(hidden ? 50 : landscape ? 40 : 30);
+          expect.soft(m.sky, `${where}: tallest clear band of sky, % of the screen`).toBeGreaterThanOrEqual(landscape ? (hidden ? 62 : 58) : hidden ? 65 : 44);
+          // The compact layout: each part is one row, and slim.
+          expect.soft(m.timeRows, `${where}: time bar controls on one row`).toBe(1);
+          expect.soft(m.h.timebar, `${where}: time bar height`).toBeLessThanOrEqual(52);
+          expect.soft(m.h.readout, `${where}: readout height`).toBeLessThanOrEqual(34);
+          expect.soft(m.h.chip, `${where}: visible height of a zoom chip`).toBeLessThanOrEqual(34);
+          expect.soft(m.h.eyebox, `${where}: camera view height`).toBeLessThanOrEqual(92);
+          expect.soft(m.headRows, `${where}: panel title row, tabs and buttons on one row`).toBe(1);
+          expect.soft(m.h.head, `${where}: panel height above its content`).toBeLessThanOrEqual(48);
           if (hidden) await page.getByRole('button', { name: 'Show' }).tap({ force: true });
         }
       }
+    });
+
+    // What the compact layout folds away stays within a tap's reach.
+    test('the folded time controls and coordinates open on a tap', async ({ page }) => {
+      await open(page);
+      const inView = async (loc: Locator, what: string) => {
+        for (const b of await boxes(page, loc)) {
+          expect(b.left >= 0 && b.top >= 0 && b.right <= width && b.bottom <= height, `${what} ${fmt(b)} off screen`).toBe(true);
+          expect(b.bottom - b.top >= 38 || b.right - b.left >= 38, `${what} ${fmt(b)} too small to tap`).toBe(true);
+        }
+      };
+      await page.getByRole('button', { name: 'Pause', exact: true }).tap();
+      await expect(clock(page)).not.toHaveText('2026-10-16 20:00 UTC');
+      const more = page.getByRole('button', { name: 'More time controls' }), pop = page.getByRole('group', { name: 'More time controls' });
+      await expect(more).toHaveAttribute('aria-expanded', 'false');
+      await more.tap();
+      await expect(pop).toBeVisible();
+      await expect(more).toHaveAttribute('aria-expanded', 'true');
+      await inView(pop.getByRole('button'), 'popover button');
+      await inView(pop, 'popover');
+      await expect(pop.getByText('Sidereal time')).toBeVisible();
+      await expect(pop.getByText('Sun altitude')).toBeVisible();
+      const direction = pop.getByRole('button', { name: /Forwards|Backwards/ });
+      await direction.tap();
+      await expect(direction).toHaveAttribute('aria-pressed', 'true');
+      await expect(pop).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(pop).toBeHidden();
+      await more.tap();
+      await page.touchscreen.tap(width / 2, height / 2);
+      await expect(pop).toBeHidden();
+      await more.tap();
+      await pop.getByRole('button', { name: 'Now' }).tap();
+      await expect(pop).toBeHidden();
+      await expect(clock(page)).toHaveText('2026-10-16 20:00 UTC');
+      // The bar itself has no second copy of these controls on screen.
+      await expect(page.getByRole('button', { name: 'Now' })).toHaveCount(0);
+
+      const extra = page.locator('#readout .extra'), moreCoords = page.getByRole('button', { name: 'More coordinates' });
+      await expect(extra.first()).toBeHidden();
+      await inView(moreCoords, 'readout button');
+      await moreCoords.tap();
+      await expect(moreCoords).toHaveAttribute('aria-expanded', 'true');
+      for (const e of await extra.all()) await expect(e).toBeVisible();
+      await inView(page.locator('#readout'), 'open readout');
+      expect(await boxes(page, '#readout .extra').then((bs) => bs.length)).toBe(3);
+      await expect(page.locator('#readout')).toContainText(/RA .*Dec .*Hour angle .*Latitude/);
+      const [r] = await boxes(page, '#readout'), [p] = await boxes(page, '#panel');
+      expect(near(r, p, 0), `open readout ${fmt(r)} over the panel ${fmt(p)}`).toBe(false);
+      await moreCoords.tap();
+      await expect(extra.first()).toBeHidden();
     });
   });
 }
@@ -249,7 +308,7 @@ function measureHud() {
   }))));
   const strip = document.getElementById('ladder')!;
   const scrolls = strip.scrollWidth > strip.clientWidth + 1;
-  const controls = [...document.querySelectorAll('#timebar button, #timebar select, #ladder button, #eyebox canvas, #panel header button, #panel [role=tab], #panel [role=tabpanel] button')].filter(vis);
+  const controls = [...document.querySelectorAll('#timebar button, #timebar select, #ladder button, #readoutMore, #eyebox canvas, #panel header button, #panel [role=tab], #panel [role=tabpanel] button')].filter(vis);
   const off: string[] = [], covered: string[] = [], small: string[] = [];
   for (const e of controls) {
     const r = rect(e), inPanelBody = !!e.closest('[role=tabpanel]');
@@ -268,9 +327,12 @@ function measureHud() {
   // Text spilling out of a box: any descendant outside the bounds of the part that holds it.
   const spill: string[] = [];
   for (const root of document.querySelectorAll('#timebar, #readout, #eyebox, #ladder button, #panel header')) {
+    // On phones the panel's header has no box of its own: its buttons sit in the panel's grid beside the tabs.
+    if (getComputedStyle(root).display === 'contents') continue;
     const R = root.getBoundingClientRect();
     for (const e of root.querySelectorAll('*')) {
-      if (!vis(e)) continue;
+      // The readout's button is taller than the row, for a bigger tap target.
+      if (!vis(e) || e.closest('#readoutMore')) continue;
       const r = e.getBoundingClientRect();
       if (r.left < R.left - 1 || r.right > R.right + 1 || r.top < R.top - 1 || r.bottom > R.bottom + 1) spill.push(`${name(e)} in ${root.id || name(root)}`);
     }
@@ -286,5 +348,18 @@ function measureHud() {
     run = Math.max(gap, innerWidth - x) >= innerWidth / 3 ? run + 4 : 0;
     best = Math.max(best, run);
   }
-  return { overlaps, off, covered, small, spill, cue, sky: Math.round((100 * best) / innerHeight) };
+  // The compact layout. Rows: the controls' vertical centres lie within a few px of each other. A zoom chip's tap box
+  // is taller than the chip you see, by its transparent top and bottom borders.
+  const oneRow = (es: Element[]) => { const c = es.map((e) => { const r = e.getBoundingClientRect(); return (r.top + r.bottom) / 2; }); return Math.max(...c) - Math.min(...c) <= 8 ? 1 : 2; };
+  const height = (q: string) => { const e = document.querySelector(q); return e && vis(e) ? e.getBoundingClientRect().height : 0; };
+  const chip = document.querySelector('#ladder button')!, chipBorder = parseFloat(getComputedStyle(chip).borderTopWidth);
+  const panel = document.getElementById('panel')!, body = document.querySelector('#panel [role=tabpanel]');
+  const h = {
+    timebar: height('#timebar'), readout: height('#readout'), eyebox: height('#eyebox'), chip: chip.getBoundingClientRect().height - 2 * chipBorder,
+    // Where the panel's content starts, or its own height when the panel is hidden.
+    head: body && vis(body) ? body.getBoundingClientRect().top - panel.getBoundingClientRect().top : panel.getBoundingClientRect().height,
+  };
+  const timeRows = oneRow([...document.querySelectorAll('#timebar > *')].filter(vis));
+  const headRows = oneRow([...document.querySelectorAll('#panel header button, #panel [role=tablist]')].filter(vis));
+  return { overlaps, off, covered, small, spill, cue, h, timeRows, headRows, sky: Math.round((100 * best) / innerHeight) };
 }
