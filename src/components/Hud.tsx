@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { SPEEDS, STOPS, TARGETS } from '../constants.ts';
 import { reverse, stepSpeed, togglePause } from '../time.ts';
 import { live, scopeInfo, settings, ui, useStore } from '../store.ts';
@@ -16,7 +16,10 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
   return (
     <>
     <div id="timebar" role="group" aria-label="Time">
-      <button type="button" id="clock" title="Set the date and time (T)" aria-expanded={timeOpen} onClick={() => ui.set((u) => ({ dialog: u.dialog === 'time' ? null : 'time' }))}>{clock}</button>
+      <button type="button" id="clock" title="Set the date and time (T)" aria-expanded={timeOpen} onClick={() => ui.set((u) => ({ dialog: u.dialog === 'time' ? null : 'time' }))}>
+        {/* The date and time take a line each on phones. */}
+        <span className="clock-date">{clock.slice(0, 10)}</span> <span>{clock.slice(11)}</span>
+      </button>
       <button type="button" title="Jump to now (N)" onClick={() => scene?.setTime(Date.now())}>Now</button>
       <button type="button" title="Slower ( [ )" aria-label="Slower" onClick={() => stepSpeed(-1)}>«</button>
       <button type="button" className="fixed-w" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
@@ -24,10 +27,13 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       <select id="speed" aria-label="Time speed" value={Math.abs(speed)} onChange={(e) => settings.set((s) => ({ speed: ((s.speed || s.lastSpeed) < 0 ? -1 : 1) * +e.target.value }))}>
         {SPEEDS.map(([n, v]) => <option key={v} value={v}>{n}</option>)}
       </select>
-      <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>{backwards ? '◀ Backwards' : 'Forwards ▶'}</button>
+      <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>
+        {/* Phones show the arrow alone, and keep the word for screen readers. */}
+        {backwards ? <><i aria-hidden="true">◀</i> <span className="word">Backwards</span></> : <><span className="word">Forwards</span> <i aria-hidden="true">▶</i></>}
+      </button>
       <span className="readings">
-        <span className="kv">Sidereal time <b>{fmtHM(lst)}</b></span>
-        <span className="kv">Sun altitude <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
+        <span className="kv">Sidereal<span className="long"> time</span> <b>{fmtHM(lst)}</b></span>
+        <span className="kv">Sun alt<span className="long">itude</span> <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
       </span>
     </div>
     <TimeDialog scene={scene} />
@@ -64,8 +70,27 @@ const SCALE_NOTES = {
 export const Ladder = forwardRef<HTMLElement, { scene: SceneApi | null }>(function Ladder({ scene }, ref) {
   const stop = useStore(live, (l) => l.stop);
   const band = stop === 'solar' ? 'solar' : stop === 'moon' || stop === 'earth' ? 'earth' : stop === 'optics' || stop === 'focus' ? 'optics' : 'site';
+  const nav = useRef<HTMLElement | null>(null);
+  const setRef = (e: HTMLElement | null) => { nav.current = e; if (typeof ref === 'function') ref(e); else if (ref) ref.current = e; };
+  // Where the strip on phones is cut off, its edge fades; styles.css reads these.
+  const edges = () => {
+    const n = nav.current!;
+    n.dataset.l = n.scrollLeft > 4 ? '1' : '';
+    n.dataset.r = n.scrollLeft + n.clientWidth < n.scrollWidth - 4 ? '1' : '';
+  };
+  useEffect(() => {
+    const n = nav.current!, ro = new ResizeObserver(edges);
+    ro.observe(n);
+    return () => ro.disconnect();
+  }, []);
+  // Bring the current stop to the middle of the strip, which is a column that never scrolls on larger screens.
+  useEffect(() => {
+    const n = nav.current!, b = n.querySelector<HTMLElement>('[aria-current=true]');
+    if (b && n.scrollWidth > n.clientWidth) n.scrollLeft = b.offsetLeft - (n.clientWidth - b.offsetWidth) / 2;
+    edges();
+  }, [stop]);
   return (
-    <nav id="ladder" aria-label="Zoom to scale" ref={ref}>
+    <nav id="ladder" aria-label="Zoom to scale" ref={setRef} onScroll={edges}>
       {STOPS.map((s) => (
         <button type="button" key={s.id} aria-current={stop === s.id} onClick={() => scene?.goTo(s.id)}>
           <span>{s.name}</span><small>{s.hint}</small>

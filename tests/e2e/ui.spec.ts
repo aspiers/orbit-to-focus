@@ -19,7 +19,13 @@ const apart: [string, string, number][] = [
   ['#timebar', '#eyebox', 0], // the camera view sits below the time bar on phones
   ['#ladder > *', '#readout', 0], // on phones the readout wraps onto three rows
   ['#readout', '#eyebox', 12], // the readout's fixed right edge once ignored the camera view's padding
+  ['#panel', '#ladder > *', 0], // on short landscape screens the strip of zoom buttons once ran on under the panel
+  ['#panel', '#readout', 0],
+  ['#panel', '#eyebox', 0],
+  ['#timebar', '#readout', 0],
 ];
+const PHONES = [[360, 640], [375, 667], [390, 844], [412, 915], [430, 932]]; // portrait
+const LANDSCAPE = [[667, 375], [844, 390], [932, 430]];
 
 test.describe('controls', () => {
   test('the address restores the state on reload', async ({ page }) => {
@@ -116,6 +122,7 @@ test.describe('controls', () => {
   // A number gaining a digit, a button changing its label or a target with a longer name once nudged everything
   // after it sideways, or onto another row.
   test('the time bar and readout keep their layout as values change', async ({ page }) => {
+    test.setTimeout(90_000); // every target at five sizes
     await open(page);
     const corners = () => page.locator('#timebar > *, #readout .kv').evaluateAll((els) => els.flatMap((e) => {
       const r = e.getBoundingClientRect();
@@ -142,7 +149,7 @@ test.describe('controls', () => {
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
     // The time bar takes one row at 1280 px, two at 1024 and three at 900.
-    for (const [width, height] of [[1920, 1080], [1280, 800], [1280, 720], [1024, 768], [900, 700], [390, 844]]) {
+    for (const [width, height] of [[1920, 1080], [1280, 800], [1280, 720], [1024, 768], [900, 700], [768, 1024], ...PHONES, ...LANDSCAPE]) {
       await page.setViewportSize({ width, height });
       await page.waitForTimeout(300);
       for (const [a, b, gap] of apart) {
@@ -151,8 +158,8 @@ test.describe('controls', () => {
         expect.soft(hits, `${width} x ${height}: ${a} and ${b} ${gap ? `closer than ${gap} px` : 'overlap'}`).toEqual([]);
       }
     }
-    for (const width of [1280, 1024, 390]) {
-      await page.setViewportSize({ width, height: width > 400 ? 800 : 844 });
+    for (const [width, height] of [[1280, 800], [1024, 768], [390, 844], [360, 640], [667, 375]]) {
+      await page.setViewportSize({ width, height });
       await page.waitForTimeout(300);
       const start = await corners();
       for (let i = 0; i < await target.locator('option').count(); i++) {
@@ -194,3 +201,90 @@ test.describe('controls', () => {
     await expect(tabs).toBeVisible();
   });
 });
+
+// The HUD on phones, as a touch screen shows it: every part clear of the others and on the screen, readable, tappable
+// and leaving a real area of sky, with the panel open and hidden, on three guide steps.
+for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
+  const landscape = width > height;
+  test.describe(`phone ${width} x ${height}`, () => {
+    test.use({ viewport: { width, height }, isMobile: true, hasTouch: true });
+    test('the HUD stays clear, on screen and tappable', async ({ page }) => {
+      await open(page);
+      const steps = [1, 13, 21];
+      for (const step of steps) {
+        while (+(await page.locator('#panel .step').textContent())!.split(' ')[0] < step) await page.keyboard.press('PageDown');
+        for (const hidden of [false, true]) {
+          if (hidden) await page.getByRole('button', { name: 'Hide' }).tap({ force: true });
+          await page.waitForTimeout(300);
+          const m = await page.evaluate(measureHud);
+          const where = `${width} x ${height}, step ${step}, panel ${hidden ? 'hidden' : 'open'}`;
+          expect.soft(m.overlaps, `${where}: HUD parts overlap`).toEqual([]);
+          expect.soft(m.off, `${where}: controls off screen`).toEqual([]);
+          expect.soft(m.covered, `${where}: controls under something else`).toEqual([]);
+          expect.soft(m.small, `${where}: touch targets under 38 px`).toEqual([]);
+          expect.soft(m.spill, `${where}: content outside its box`).toEqual([]);
+          expect.soft(m.cue, `${where}: the zoom strip scrolls with no fade at its cut-off end`).toBe(true);
+          expect.soft(m.sky, `${where}: tallest clear band of sky, % of the screen`).toBeGreaterThanOrEqual(hidden ? 50 : landscape ? 40 : 30);
+          if (hidden) await page.getByRole('button', { name: 'Show' }).tap({ force: true });
+        }
+      }
+    });
+  });
+}
+
+// Runs in the page. The zoom strip's buttons count as the part of them the strip shows; scrolled panel content is the
+// panel's own business.
+function measureHud() {
+  const vis = (e: Element) => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  const rect = (e: Element) => {
+    const r = e.getBoundingClientRect(), strip = e.parentElement?.id === 'ladder' ? e.parentElement.getBoundingClientRect() : null;
+    return strip ? [Math.max(r.left, strip.left), r.top, Math.min(r.right, strip.right), r.bottom] : [r.left, r.top, r.right, r.bottom];
+  };
+  const name = (e: Element) => (e.textContent || e.getAttribute('aria-label') || e.tagName).trim().slice(0, 20);
+  const parts: [string, Element[]][] = ['#timebar', '#ladder > *', '#readout', '#eyebox', '#panel'].map((q) => [q, [...document.querySelectorAll(q)].filter(vis)]);
+  const hit = (a: number[], b: number[]) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+  const overlaps: string[] = [];
+  parts.forEach(([qa, as], i) => parts.slice(i + 1).forEach(([qb, bs]) => as.forEach((a) => bs.forEach((b) => {
+    if (hit(rect(a), rect(b))) overlaps.push(`${qa} ${name(a)} [${rect(a).map(Math.round)}] and ${qb} ${name(b)} [${rect(b).map(Math.round)}]`);
+  }))));
+  const strip = document.getElementById('ladder')!;
+  const scrolls = strip.scrollWidth > strip.clientWidth + 1;
+  const controls = [...document.querySelectorAll('#timebar button, #timebar select, #ladder button, #eyebox canvas, #panel header button, #panel [role=tab], #panel [role=tabpanel] button')].filter(vis);
+  const off: string[] = [], covered: string[] = [], small: string[] = [];
+  for (const e of controls) {
+    const r = rect(e), inPanelBody = !!e.closest('[role=tabpanel]');
+    if (inPanelBody) continue;
+    if (e.closest('#ladder') && scrolls) continue;
+    if (r[0] < -1 || r[1] < -1 || r[2] > innerWidth + 1 || r[3] > innerHeight + 1) off.push(`${name(e)} [${r.map(Math.round)}]`);
+    else {
+      const top = document.elementFromPoint((r[0] + r[2]) / 2, (r[1] + r[3]) / 2);
+      if (!top || !(e.contains(top) || top.contains(e))) covered.push(`${name(e)} under ${top?.id || top?.className || top?.tagName}`);
+    }
+  }
+  for (const e of controls) {
+    const b = e.getBoundingClientRect();
+    if (!e.matches('canvas') && (b.height < 38 || b.width < 38)) small.push(`${name(e)} ${Math.round(b.width)} x ${Math.round(b.height)}`);
+  }
+  // Text spilling out of a box: any descendant outside the bounds of the part that holds it.
+  const spill: string[] = [];
+  for (const root of document.querySelectorAll('#timebar, #readout, #eyebox, #ladder button, #panel header')) {
+    const R = root.getBoundingClientRect();
+    for (const e of root.querySelectorAll('*')) {
+      if (!vis(e)) continue;
+      const r = e.getBoundingClientRect();
+      if (r.left < R.left - 1 || r.right > R.right + 1 || r.top < R.top - 1 || r.bottom > R.bottom + 1) spill.push(`${name(e)} in ${root.id || name(root)}`);
+    }
+  }
+  const mask = getComputedStyle(strip).maskImage;
+  const cue = !scrolls || (mask !== 'none' && mask !== '');
+  // A row is clear sky when the widest gap between HUD boxes on it is at least a third of the screen.
+  const rects = parts.flatMap(([, es]) => es.map(rect));
+  let best = 0, run = 0;
+  for (let y = 0; y < innerHeight; y += 4) {
+    let x = 0, gap = 0;
+    for (const [l, , r] of rects.filter((b) => b[1] <= y && y < b[3]).sort((p, q) => p[0] - q[0])) { gap = Math.max(gap, l - x); x = Math.max(x, r); }
+    run = Math.max(gap, innerWidth - x) >= innerWidth / 3 ? run + 4 : 0;
+    best = Math.max(best, run);
+  }
+  return { overlaps, off, covered, small, spill, cue, sky: Math.round((100 * best) / innerHeight) };
+}

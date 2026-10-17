@@ -181,4 +181,80 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #readout, body:has(#panel.closed) #readout { bottom: calc(anchor(--panel top) + 8px); }
   #ladder, body:has(#panel.closed) #ladder { bottom: calc(anchor(--readout top) + 8px); }
 }
+/* The sideways strip of zoom stops fades where it is cut off, as a cue that it scrolls (Ladder sets the data attributes). */
+@media (max-width: 860px), (orientation: landscape) and (max-height: 500px) {
+  #ladder[data-r='1'] { mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+  #ladder[data-l='1'] { mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+  #ladder[data-l='1'][data-r='1'] { mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+}
+
+/* Phones, portrait and landscape: a compact time bar, readout and camera view, and touch targets of about 40px.
+   The time bar's first row is the clock and the controls, the second the speed and the two readings; at 360px
+   that is two rows, as the clock takes two lines and the direction button shows only its arrow. */
+@media (max-width: 600px) and (orientation: portrait), (orientation: landscape) and (max-height: 500px) {
+  :root { --gap: 8px; }
+  #timebar { gap: 4px; padding: 4px; border-radius: 8px; }
+  #timebar button, #timebar select { min-height: 38px; min-width: 38px; padding: 4px 8px; font-size: 13px; }
+  #clock { font-size: 12px; line-height: 1.25; padding: 2px 4px; text-align: left; }
+  #clock .clock-date { display: block; }
+  #timebar .fixed-w, #timebar .fixed-w.wide { min-width: 56px; }
+  #timebar .fixed-w.wide { min-width: 0; width: 40px; padding: 4px 0; order: 1; }
+  #timebar .word, #timebar .long { display: none; }
+  #speed { order: 2; }
+  #timebar .readings { order: 3; flex-direction: column; gap: 0; }
+  #timebar .kv { font-size: 11px; line-height: 1.3; }
+  #readout { padding: 4px 8px; gap: 0 10px; border-radius: 8px; }
+  #readout .title { gap: 8px; }
+  #readout .name { font-size: 15px; line-height: 1.25; }
+  #readout .grp { gap: 8px; }
+  #readout .kv, #readout .kv b { font-size: 11px; line-height: 1.35; }
+  #ladder { gap: 4px; }
+  #ladder button { flex-direction: row; align-items: center; min-height: 38px; padding: 0 10px; }
+  #eyeCaption { display: none; }
+  #eyebox { width: auto; bottom: auto; top: 108px; top: calc(anchor(--timebar bottom) + 6px); padding: 5px; }
+  #eyebox canvas { width: clamp(88px, 15vh, 120px); height: clamp(88px, 15vh, 120px); }
+  /* The warning covers the corner of the small camera view rather than making the box taller. */
+  #sunWarn { position: absolute; left: 5px; right: 5px; bottom: 5px; padding: 3px 4px; border-radius: 4px; background: rgba(4, 6, 13, 0.88); font-size: 10px; line-height: 1.25; }
+  #panel header { padding: 6px 10px 4px 12px; }
+  #panel header button { min-width: 40px; min-height: 40px; padding: 4px 10px; }
+  h1 { font-size: 22px; }
+  [role=tabpanel] { padding: 10px 12px; }
+  h2 { font-size: 21px; margin: 2px 0 8px; }
+  /* Touch targets in the panel and dialogs: the whole label of a checkbox or radio button is the target. */
+  [role=tab], .row > label, #panel button, #panel select, #panel input:not([type=checkbox], [type=radio]), dialog button, dialog input { min-height: 40px; }
+  .row > label { padding: 0; }
+  .slider input { height: 40px; margin: 0; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  #panel { height: 34vh; }
+  #panel.closed { height: auto; }
+  /* The fallbacks, for browsers without anchor positioning; the anchors below it are as in the 860px block. */
+  #readout { bottom: calc(34vh + 8px); }
+  #ladder { bottom: calc(34vh + 8px + 58px + 8px); }
+  body:has(#panel.closed) #ladder { bottom: 110px; }
+  body:has(#panel.closed) #readout { bottom: 60px; }
+  #readout, body:has(#panel.closed) #readout { bottom: calc(anchor(--panel top) + 8px); }
+  #ladder, body:has(#panel.closed) #ladder { bottom: calc(anchor(--readout top) + 8px); }
+}
+
+/* Short landscape screens, which no phone layout above fits: the panel is a column on the left, the time bar,
+   zoom strip and readout fill the right, and the camera view sits below the time bar. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --pw: min(40vw, 340px); --pl: max(var(--gap), env(safe-area-inset-left, 0px)); --pr: calc(var(--pl) + var(--pw) + 12px); --pe: max(var(--gap), env(safe-area-inset-right, 0px)); }
+  #panel, #panel.closed { box-sizing: border-box; top: calc(env(safe-area-inset-top, 0px) + var(--gap)); left: var(--pl); right: auto; width: var(--pw); border-radius: 10px; padding: 0; }
+  #panel { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); height: auto; }
+  #panel.closed { bottom: auto; }
+  #timebar { left: var(--pr); right: var(--pe); max-width: none; justify-content: flex-start; }
+  #eyebox { right: var(--pe); }
+  #eyeTitle { display: none; }
+  #readout { left: var(--pr); right: var(--pe); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); anchor-name: --readout; }
+  #ladder { top: auto; left: var(--pr); right: var(--pe); width: auto; container-type: normal; flex-direction: row; overflow-x: auto; scrollbar-width: none; bottom: 96px; bottom: calc(anchor(--readout top) + 6px); }
+  #ladder button { flex: none; }
+  #ladder button small, #scaleNote { display: none; }
+  #ladder .eye-btn { margin-top: 0; }
+  /* With the panel hidden, the readout and zoom strip use the room below its header too. */
+  body:has(#panel.closed) #readout, body:has(#panel.closed) #ladder { left: var(--pl); }
+  body:has(#panel.closed) #readout { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); }
+  body:has(#panel.closed) #ladder { bottom: 96px; bottom: calc(anchor(--readout top) + 6px); }
+}
 @media (prefers-reduced-motion: reduce) { .rate .bar i { transition: none; } }

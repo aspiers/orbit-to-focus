@@ -49,7 +49,13 @@ export function App() {
     if (!scene) return;
     const update = () => {
       const p = panel.current!.getBoundingClientRect(), l = ladder.current!.getBoundingClientRect();
-      if (innerWidth > 860) scene.setViewShift((p.right - (innerWidth - l.left)) / 2, 0);
+      // The compact phone layouts leave a band of sky between the time bar and the zoom strip, and on short landscape
+      // screens right of the panel's column.
+      const bar = document.getElementById('timebar')!.getBoundingClientRect();
+      const landscape = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+      if (landscape) scene.setViewShift(panel.current!.classList.contains('closed') ? 0 : p.right / 2, (innerHeight - l.top - bar.bottom) / 2);
+      else if (matchMedia('(max-width: 600px)').matches) scene.setViewShift(0, (innerHeight - l.top - bar.bottom) / 2);
+      else if (innerWidth > 860) scene.setViewShift((p.right - (innerWidth - l.left)) / 2, 0);
       else scene.setViewShift(0, (innerHeight - p.top - 110) / 2);
     };
     const ro = new ResizeObserver(update);
