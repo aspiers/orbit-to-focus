@@ -127,13 +127,17 @@ export function Readout() {
   const l = useStore(live, (x) => x);
   const name = useStore(settings, (s) => TARGETS[s.target][0]);
   const lat = useStore(settings, (s) => s.lat);
+  // Phones show the name, altitude and azimuth on one row; a tap on it opens the rest.
+  const [open, setOpen] = useState(false);
   return (
-    <div id="readout" aria-label="Target coordinates">
+    <div id="readout" aria-label="Target coordinates" className={`${open ? 'open' : ''} ${l.alt <= 0 ? 'below' : ''}`}>
       <div className="title"><span className="name">{name === 'Custom' ? 'Custom target' : name}</span>{l.alt <= 0 && <span id="rHorizon">Below your horizon</span>}</div>
-      <span className="grp"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b className="w6">{fmtDeg(l.dec, true)}</b></span></span>
-      <span className="grp"><span className="kv k-mer">Hour angle <b className="w8">{fmtSignedHM(l.ha)}</b></span></span>
-      <span className="grp"><span className="kv k-hor">Altitude <b className="w6">{fmtDeg(l.alt, true)}</b></span><span className="kv k-hor">Azimuth <b className="w6">{(l.az * R2D).toFixed(1)}°</b> <b className="w2 left">{compassPoint(l.az)}</b></span></span>
-      <span className="kv">Latitude <b className="w5">{Math.abs(lat * R2D).toFixed(1)}°</b> <b>{lat >= 0 ? 'N' : 'S'}</b></span>
+      <span className="grp extra"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b className="w6">{fmtDeg(l.dec, true)}</b></span></span>
+      <span className="grp extra"><span className="kv k-mer">Hour angle <b className="w8">{fmtSignedHM(l.ha)}</b></span></span>
+      <span className="grp main"><span className="kv k-hor">Alt<span className="long">itude</span> <b className="w6 alt">{fmtDeg(l.alt, true)}</b></span><span className="kv k-hor">Az<span className="long">imuth</span> <b className="w6">{(l.az * R2D).toFixed(1)}°</b> <b className="w2 left">{compassPoint(l.az)}</b></span></span>
+      <span className="kv extra">Latitude <b className="w5">{Math.abs(lat * R2D).toFixed(1)}°</b> <b>{lat >= 0 ? 'N' : 'S'}</b></span>
+      <i className="brk" aria-hidden="true" />
+      <button type="button" id="readoutMore" title="More coordinates" aria-label="More coordinates" aria-expanded={open} onClick={() => setOpen(!open)}><i aria-hidden="true">{open ? '▴' : '▾'}</i></button>
     </div>
   );
 }
