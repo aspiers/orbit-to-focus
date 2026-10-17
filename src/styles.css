@@ -225,11 +225,15 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #readout.open .kv.extra { display: block; }
   #readout.open .brk { display: block; order: 2; flex-basis: 100%; height: 0; }
   #readout.open #rHorizon { display: inline; }
+  /* Slim chips: 32 px of button inside a 40 px box, whose transparent top and bottom edges are the rest of the tap area. */
   #ladder { gap: 4px; }
-  #ladder button { flex-direction: row; align-items: center; min-height: 38px; padding: 0 10px; }
+  #ladder button, #ladder button[aria-current=true] { flex-direction: row; align-items: center; min-height: 40px; padding: 0 10px; border-width: 4px 0; border-color: transparent; background-clip: padding-box; box-shadow: inset 0 0 0 1px var(--line); font-size: 13px; }
+  #ladder button[aria-current=true] { box-shadow: inset 0 0 0 1px var(--accent), inset 3px 0 0 var(--accent); }
   #eyeCaption { display: none; }
   #eyebox { width: auto; bottom: auto; top: 108px; top: calc(anchor(--timebar bottom) + 6px); padding: 5px; }
-  #eyebox canvas { width: clamp(88px, 15vh, 120px); height: clamp(88px, 15vh, 120px); }
+  #eyebox canvas { width: 76px; height: 76px; }
+  /* The title goes over the picture's corner rather than above it. */
+  #eyeTitle { display: block; position: absolute; left: 9px; top: 8px; font-size: 9px; line-height: 1.2; text-shadow: 0 0 3px #000; pointer-events: none; }
   /* The warning covers the corner of the small camera view rather than making the box taller. */
   #sunWarn { position: absolute; left: 5px; right: 5px; bottom: 5px; padding: 3px 4px; border-radius: 4px; background: rgba(4, 6, 13, 0.88); font-size: 10px; line-height: 1.25; }
   #panel header { padding: 6px 10px 4px 12px; }
@@ -263,7 +267,6 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #panel.closed { bottom: auto; }
   #timebar { left: var(--pr); right: var(--pe); max-width: none; justify-content: flex-start; }
   #eyebox { right: var(--pe); }
-  #eyeTitle { display: none; }
   #readout { left: var(--pr); right: var(--pe); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); anchor-name: --readout; }
   #ladder { top: auto; left: var(--pr); right: var(--pe); width: auto; container-type: normal; flex-direction: row; overflow-x: auto; scrollbar-width: none; bottom: 96px; bottom: calc(anchor(--readout top) + 6px); }
   #ladder button { flex: none; }
