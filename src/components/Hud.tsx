@@ -12,29 +12,48 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const clock = useStore(live, (l) => l.clock), lst = useStore(live, (l) => l.lst), sunAlt = useStore(live, (l) => l.sunAlt);
   const speed = useStore(settings, (s) => s.speed), backwards = useStore(settings, (s) => (s.speed || s.lastSpeed) < 0);
   const timeOpen = useStore(ui, (u) => u.dialog === 'time');
+  const [more, setMore] = useState(false);
+  const bar = useRef<HTMLDivElement>(null);
+  // Phones fold Now, the direction and the two readings into a popover; a tap elsewhere or Escape closes it.
+  useEffect(() => {
+    if (!more) return;
+    const onDown = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setMore(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMore(false); document.getElementById('moreBtn')?.focus(); } };
+    addEventListener('pointerdown', onDown);
+    addEventListener('keydown', onKey);
+    return () => { removeEventListener('pointerdown', onDown); removeEventListener('keydown', onKey); };
+  }, [more]);
+  const now = (c: string) => <button type="button" className={c} title="Jump to now (N)" onClick={() => { scene?.setTime(Date.now()); setMore(false); }}>Now</button>;
+  const direction = (c: string) => (
+    <button type="button" title="Run time backwards ( \ )" className={`fixed-w wide ${c}`} aria-pressed={backwards} onClick={reverse}>
+      {backwards ? <><i aria-hidden="true">◀</i> <span className="word">Backwards</span></> : <><span className="word">Forwards</span> <i aria-hidden="true">▶</i></>}
+    </button>
+  );
+  const readings = (c: string) => (
+    <span className={`readings ${c}`}>
+      <span className="kv">Sidereal<span className="long"> time</span> <b>{fmtHM(lst)}</b></span>
+      <span className="kv">Sun alt<span className="long">itude</span> <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
+    </span>
+  );
   // The dialog sits outside the bar: the bar's backdrop blur would make it the dialog's positioning frame.
   return (
     <>
-    <div id="timebar" role="group" aria-label="Time">
+    <div id="timebar" role="group" aria-label="Time" ref={bar}>
       <button type="button" id="clock" title="Set the date and time (T)" aria-expanded={timeOpen} onClick={() => ui.set((u) => ({ dialog: u.dialog === 'time' ? null : 'time' }))}>
         {/* The date and time take a line each on phones. */}
         <span className="clock-date">{clock.slice(0, 10)}</span> <span>{clock.slice(11)}</span>
       </button>
-      <button type="button" title="Jump to now (N)" onClick={() => scene?.setTime(Date.now())}>Now</button>
+      {now('desk')}
       <button type="button" title="Slower ( [ )" aria-label="Slower" onClick={() => stepSpeed(-1)}>«</button>
       <button type="button" className="fixed-w" title="Pause or play (Space)" onClick={togglePause}>{speed ? 'Pause' : 'Play'}</button>
       <button type="button" title="Faster ( ] )" aria-label="Faster" onClick={() => stepSpeed(1)}>»</button>
       <select id="speed" aria-label="Time speed" value={Math.abs(speed)} onChange={(e) => settings.set((s) => ({ speed: ((s.speed || s.lastSpeed) < 0 ? -1 : 1) * +e.target.value }))}>
         {SPEEDS.map(([n, v]) => <option key={v} value={v}>{n}</option>)}
       </select>
-      <button type="button" title="Run time backwards ( \ )" className="fixed-w wide" aria-pressed={backwards} onClick={reverse}>
-        {/* Phones show the arrow alone, and keep the word for screen readers. */}
-        {backwards ? <><i aria-hidden="true">◀</i> <span className="word">Backwards</span></> : <><span className="word">Forwards</span> <i aria-hidden="true">▶</i></>}
-      </button>
-      <span className="readings">
-        <span className="kv">Sidereal<span className="long"> time</span> <b>{fmtHM(lst)}</b></span>
-        <span className="kv">Sun alt<span className="long">itude</span> <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
-      </span>
+      {direction('desk')}
+      {readings('desk')}
+      <button type="button" id="moreBtn" title="More time controls" aria-label="More time controls" aria-expanded={more} aria-controls="moreTime" onClick={() => setMore(!more)}>⋯</button>
+      {more && <div id="moreTime" role="group" aria-label="More time controls">{now('')}{direction('')}{readings('')}</div>}
     </div>
     <TimeDialog scene={scene} />
     </>

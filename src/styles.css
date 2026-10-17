@@ -97,6 +97,9 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
   background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; box-sizing: border-box; max-width: calc(100% - 350px - 3 * var(--gap)); backdrop-filter: blur(8px); anchor-name: --timebar; }
 /* The two readings wrap together, onto a row of their own, when the bar is too narrow for one row. */
 #timebar .readings { display: flex; gap: 8px; }
+#moreBtn, #moreTime { display: none; }
+#moreTime { position: absolute; top: calc(100% + 6px); right: 0; z-index: 3; flex-wrap: wrap; align-items: center; gap: 8px 6px; padding: 8px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+#moreTime .readings { flex: 1 0 100%; flex-direction: column; gap: 2px; }
 #clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; background: none; border-color: transparent; padding: 6px 4px; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
 dialog { z-index: 10; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); background: #0e1324; color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
 dialog::backdrop { background: rgba(2, 3, 10, 0.6); }
@@ -189,20 +192,21 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 }
 
 /* Phones, portrait and landscape: a compact time bar, readout and camera view, and touch targets of about 40px.
-   The time bar's first row is the clock and the controls, the second the speed and the two readings; at 360px
-   that is two rows, as the clock takes two lines and the direction button shows only its arrow. */
+   The time bar is one row: the clock on two lines, slower, pause, faster, the speed and a button for the rest. */
 @media (max-width: 600px) and (orientation: portrait), (orientation: landscape) and (max-height: 500px) {
   :root { --gap: 8px; }
-  #timebar { gap: 4px; padding: 4px; border-radius: 8px; }
-  #timebar button, #timebar select { min-height: 38px; min-width: 38px; padding: 4px 8px; font-size: 13px; }
-  #clock { font-size: 12px; line-height: 1.25; padding: 2px 4px; text-align: left; }
+  #timebar { flex-wrap: nowrap; gap: 3px; padding: 4px; border-radius: 8px; z-index: 3; }
+  #timebar button, #timebar select { min-height: 40px; min-width: 38px; padding: 4px 5px; font-size: 13px; }
+  #timebar #clock { flex: none; font-size: 11px; line-height: 1.25; padding: 2px 3px; min-width: 0; text-align: left; }
   #clock .clock-date { display: block; }
-  #timebar .fixed-w, #timebar .fixed-w.wide { min-width: 56px; }
-  #timebar .fixed-w.wide { min-width: 0; width: 40px; padding: 4px 0; order: 1; }
-  #timebar .word, #timebar .long { display: none; }
-  #speed { order: 2; }
-  #timebar .readings { order: 3; flex-direction: column; gap: 0; }
-  #timebar .kv { font-size: 11px; line-height: 1.3; }
+  #timebar .fixed-w { min-width: 44px; }
+  /* The speed takes what the clock and buttons leave; its own arrow would eat a fifth of that. */
+  #speed { flex: 1; min-width: 0; font-size: 12px; text-overflow: ellipsis; appearance: none; padding: 4px 14px 4px 4px;
+    background: #121828 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%2398a1bb'/%3E%3C/svg%3E") no-repeat right 5px center; }
+  /* Now, the direction and the two readings move into the popover behind the last button. */
+  #timebar .desk { display: none; }
+  #moreBtn { display: block; flex: none; font-size: 18px; line-height: 1; padding: 0; }
+  #moreTime { display: flex; }
   #readout { padding: 4px 8px; gap: 0 10px; border-radius: 8px; }
   #readout .title { gap: 8px; }
   #readout .name { font-size: 15px; line-height: 1.25; }
