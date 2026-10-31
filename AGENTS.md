@@ -25,10 +25,23 @@ system down through the Earth, your site and a telescope to its optics. See
 - `npm run test:e2e`: builds `dist-e2e/` with `vite build --mode e2e`, serves
   it on port 5182 and runs the Playwright tests (`tests/e2e/`) in
   `/usr/bin/chromium` on the GPU. Takes about a minute. To run one test, use
-  `npx playwright test -g '<name>'` once `dist-e2e/` exists; `npm run build`
-  leaves it alone.
+  `sh tools/capped.sh npx playwright test -g '<name>'` once `dist-e2e/`
+  exists; `npm run build` leaves it alone.
 - `npm run build`: typecheck, then a single-file build in `dist/`
   (`dist/orbit-to-focus.html` is the publishable artifact).
+
+## Machine load
+
+Work on this project must take no more than half the machine's CPU or GPU.
+
+- `npm test`, `npm run test:unit` and `npm run test:e2e` run under
+  `tools/capped.sh`, a systemd user scope capped at half the cores. Run
+  other heavy commands through it too, such as a single Playwright test or a
+  `vite build`.
+- Run one browser on the app at a time, and close any browser or dev server
+  you start as soon as you are done: an open page keeps rendering the 3D
+  scene. Never leave a headless browser on the app, since without the GPU it
+  renders in software on the CPU.
 
 ## Tests
 
