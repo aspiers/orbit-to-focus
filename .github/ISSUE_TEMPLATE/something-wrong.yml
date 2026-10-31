@@ -8,7 +8,7 @@ body:
       description: >-
         The guide step or zoom level, or a link to the view. Copy link (the link icon, or the U key) copies the
         page address without your location.
-      placeholder: https://orbit-to-focus.vercel.app/#lesson=8
+      placeholder: https://www.orbit-to-focus.space/#lesson=8
     validations:
       required: true
   - type: textarea

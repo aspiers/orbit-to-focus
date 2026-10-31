@@ -92,7 +92,7 @@ unless explicitly requested, with one standing exception below.
 
 The source is public at <https://github.com/aspiers/orbit-to-focus> (remote
 `github`) and Vercel deploys each push to `main` to
-<https://orbit-to-focus.vercel.app>. The maintainer has given standing
+<https://orbit-to-focus.space>. The maintainer has given standing
 permission to push `main` to `github` once work is merged, finished and
 `npm test` passes on `main`; that push is the release. Push nothing else:
 no other branches, tags or `refs/replace/*`. Always name the remote.

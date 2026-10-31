@@ -7,7 +7,7 @@ refractor's focal length, aperture and sensor can be set to match your own. Guid
 why a polar axis tilts by your latitude, equatorial mode, tracking, aperture, focal length, f-numbers,
 and other telescope designs (Petzval, refractor, Newtonian, Dobsonian, Schmidt-Cassegrain).
 
-Try it at <https://orbit-to-focus.vercel.app>.
+Try it at <https://orbit-to-focus.space>.
 
 It's an alpha. If something is wrong, especially in the astronomy or optics, please
 [open an issue](https://github.com/aspiers/orbit-to-focus/issues/new/choose).
