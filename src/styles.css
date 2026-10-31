@@ -248,6 +248,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   [role=tab] { flex: 1 1 auto; min-width: 40px; padding: 8px 2px; font-size: 12px; white-space: nowrap; }
   [role=tabpanel] { grid-column: 1 / -1; grid-row: 2; align-self: stretch; border-top: 1px solid var(--line); padding: 8px 12px; }
   h2 { font-size: 20px; margin: 2px 0 8px; }
+  /* The panel rarely fits a whole step, so Back and Next stay on screen while its text scrolls under them. */
+  .lesson-nav { position: sticky; bottom: -8px; margin: 10px -12px -8px; padding: 6px 12px 8px; background: rgb(11, 15, 28); border-top: 1px solid var(--line); }
   /* Touch targets in the panel and dialogs: the whole label of a checkbox or radio button is the target. */
   [role=tab], .row > label, #panel button, #panel select, #panel input:not([type=checkbox], [type=radio]), dialog button, dialog input { min-height: 40px; }
   .row > label { padding: 0; }

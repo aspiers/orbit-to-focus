@@ -233,6 +233,10 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
           expect.soft(m.h.eyebox, `${where}: camera view height`).toBeLessThanOrEqual(92);
           expect.soft(m.headRows, `${where}: panel title row, tabs and buttons on one row`).toBe(1);
           expect.soft(m.h.head, `${where}: panel height above its content`).toBeLessThanOrEqual(48);
+          if (!hidden) {
+            const next = (await page.getByRole('button', { name: 'Next', exact: true }).boundingBox())!;
+            expect.soft(next.y + next.height, `${where}: bottom of the guide's Next button, unscrolled`).toBeLessThanOrEqual(height);
+          }
           if (hidden) await page.getByRole('button', { name: 'Show' }).tap({ force: true });
         }
       }
