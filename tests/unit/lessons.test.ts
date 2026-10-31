@@ -75,6 +75,11 @@ describe.each([['Greenwich', 51.48, 0], ['Sydney', -33.87, 1]] as const)('guide 
   });
 });
 
+// Phones move the HUD parts around, so the guide names them rather than where they are.
+it('names no screen corner or edge', () => {
+  for (let i = 0; i < LESSONS.length; i++) expect(text(i)).not.toMatch(/\b(top|bottom) (left|right)\b|\b(of|on) the screen\b/i);
+});
+
 // Altitude in degrees of the current target, which must be a star.
 const targetAlt = (ms: number) => {
   const { target, lat, lon } = settings.get(), [, ra, dec] = TARGETS[target];

@@ -83,7 +83,7 @@ export const LESSONS: Lesson[] = [
     body: <>
       <p>Zoom in to your site and Earth looks flat. You can only see the half of the sky above your <b className="c-hor">horizon</b>.</p>
       <p><b>Altitude</b> is the angle above the horizon: 0° at the horizon, 90° straight up at the <b>zenith</b>. <b>Azimuth</b> is the compass bearing, measured from north through east: 90° is east, 180° south, 270° west.</p>
-      <p>The green grid is this <b>alt-az</b> system. It is fixed to you, not the stars, so a star’s altitude and azimuth keep changing through the night. Watch the numbers at the bottom of the screen.</p>
+      <p>The green grid is this <b>alt-az</b> system. It is fixed to you, not the stars, so a star’s altitude and azimuth keep changing through the night. Watch the target’s altitude and azimuth change in the box that shows its name.</p>
     </>,
   },
   {
@@ -128,7 +128,7 @@ export const LESSONS: Lesson[] = [
     title: 'What tracking does', view: { stop: 'scope' }, speed: 60, mountMode: 'eq', tracking: false, target: 'Vega', southTarget: SOUTH_STARS, telescope: 'seestar', corrected: true, layers: { lat: false },
     body: <>
       <p>The purple box on the sky is the telescope’s <b>field of view</b>: the patch of sky it shows you.</p>
-      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so <NS n="Vega" s={<Target />} /> drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The camera or eyepiece view (bottom right) shows the same thing through the telescope.</p>
+      <p>Tracking is now off and time runs at one minute per second. The telescope stays still while Earth turns, so <NS n="Vega" s={<Target />} /> drifts out of the box, by up to a quarter of a degree per minute (less near the pole). The Camera view or Eyepiece view box shows the same thing through the telescope.</p>
       <p>The light drawn inside the tube comes from the centre of the field, so it always runs along the tube while <NS n="Vega" s={<Target />} /> drifts away from it. Tick <b>Track the target</b> on the Telescope tab (or press <kbd>K</kbd>) to bring <NS n="Vega" s={<Target />} /> back.</p>
     </>,
   },
