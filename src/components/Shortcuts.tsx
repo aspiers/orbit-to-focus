@@ -62,7 +62,10 @@ export const GROUPS: [string, Shortcut[]][] = [
     { keys: ['A'], label: 'Latitude angles', run: toggleLayer('lat') },
   ]],
   ['Share', [{ keys: ['U'], label: 'Copy a link to this view, without your location', run: copyLink }]],
-  ['Help', [{ keys: ['?'], label: 'Show or hide this list', run: () => ui.set((u) => ({ dialog: u.dialog === 'keys' ? null : 'keys' })) }]],
+  ['Help', [
+    { keys: ['?'], label: 'Show or hide this list', run: () => ui.set((u) => ({ dialog: u.dialog === 'keys' ? null : 'keys' })) },
+    { keys: ['I'], label: 'About this alpha, and how to report a mistake', run: () => ui.set({ dialog: 'about' }) },
+  ]],
 ];
 
 const KEYMAP = new Map<string, (scene: SceneApi) => void>();

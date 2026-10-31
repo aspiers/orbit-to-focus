@@ -308,6 +308,31 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
   });
 }
 
+// Alpha reviewers need the way to report a mistake within reach at every size, with the panel open or hidden. On short
+// landscape screens the row of tabs has no room for it, so it moves to the panel's foot.
+for (const [width, height] of [[1280, 800], [390, 844], [667, 375]]) {
+  test.describe(`${width} x ${height}`, () => {
+    test.use({ viewport: { width, height }, isMobile: width < 1000, hasTouch: width < 1000 });
+    test('the Alpha link opens the About panel', async ({ page }) => {
+      await open(page);
+      const about = page.getByRole('button', { name: /^Alpha/ }), dialog = page.getByRole('dialog', { name: 'About Orbit to Focus' });
+      await page.keyboard.press('I');
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      for (const hidden of [false, true]) {
+        if (hidden) await page.getByRole('button', { name: 'Hide' }).click();
+        await expect(about, `panel ${hidden ? 'hidden' : 'open'}`).toBeInViewport({ ratio: 1 });
+        await about.click();
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole('link', { name: 'Open an issue on GitHub' })).toHaveAttribute('href', 'https://github.com/aspiers/orbit-to-focus/issues/new/choose');
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+      }
+    });
+  });
+}
+
 // Guide step 1 shows the whole of Earth's orbit: wherever the Earth is in the year it is on screen and clear of the
 // camera view, and the orbit's labels, which hang off to the right of their points, stay on screen. The field of view
 // is fixed vertically, so on portrait phones the orbit once ran off both sides, under the camera view.
@@ -405,6 +430,7 @@ function measureHud() {
     head: body && vis(body) ? body.getBoundingClientRect().top - panel.getBoundingClientRect().top : panel.getBoundingClientRect().height,
   };
   const timeRows = oneRow([...document.querySelectorAll('#timebar > *')].filter(vis));
-  const headRows = oneRow([...document.querySelectorAll('#panel header button, #panel [role=tablist]')].filter(vis));
+  // Short landscape screens put Alpha at the panel's foot rather than in this row.
+  const headRows = oneRow([...document.querySelectorAll('#panel header button, #panel [role=tablist]')].filter((e) => vis(e) && !(e.id === 'about' && e.getBoundingClientRect().top > panel.getBoundingClientRect().top + 60)));
   return { overlaps, off, covered, small, spill, cue, h, timeRows, headRows, sky: Math.round((100 * best) / innerHeight) };
 }

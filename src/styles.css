@@ -48,6 +48,9 @@ body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); over
 h1 { font: 600 26px/1 var(--display); margin: 0; letter-spacing: 0.01em; flex: 1; text-wrap: balance; }
 h1 span { color: var(--accent); }
 #panel header button { flex: none; }
+/* The alpha note takes a line of its own under the title, as a link. */
+#panel header { flex-wrap: wrap; }
+#panel header #about { order: 1; flex: 1 0 100%; margin-top: -4px; padding: 0; background: none; border: 0; text-align: left; font-size: 12px; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 [role=tablist] { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--line); }
 [role=tab] { flex: 1; background: none; border: 0; color: var(--muted); font: 500 13px var(--body); padding: 8px 4px; border-bottom: 2px solid transparent; cursor: pointer; }
 [role=tab][aria-selected=true] { color: var(--fg); border-bottom-color: var(--accent); }
@@ -101,7 +104,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 #moreTime { position: absolute; top: calc(100% + 6px); right: 0; z-index: 3; flex-wrap: wrap; align-items: center; gap: 8px 6px; padding: 8px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
 #moreTime .readings { flex: 1 0 100%; flex-direction: column; gap: 2px; }
 #clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; background: none; border-color: transparent; padding: 6px 4px; text-decoration: underline dotted var(--muted); text-underline-offset: 4px; }
-dialog { z-index: 10; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); background: #0e1324; color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog { z-index: 10; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); background: #0e1324; color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; max-width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-sizing: border-box; }
 dialog::backdrop { background: rgba(2, 3, 10, 0.6); }
 dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 dialog h2 { margin: 0; font: 600 18px var(--display); }
@@ -110,11 +113,16 @@ dialog input { background: #1a2136; border: 1px solid #2d3756; border-radius: 6p
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .keys { columns: 2 300px; column-gap: 28px; }
 .keys section { break-inside: avoid; margin-bottom: 14px; }
-.keys h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.keys h3, .about h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
 .keys dl { margin: 0; }
 .keys dl div { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
 .keys dt { flex: none; min-width: 7.5em; }
 .keys dd { margin: 0; color: var(--muted); font-size: 13px; }
+.about { max-width: 62ch; }
+.about p, .about ul { margin: 0 0 8px; color: #d3d7e4; }
+.about ul { padding-left: 20px; }
+.about h3 { margin-top: 14px; }
+.about a { color: var(--accent); }
 kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margin-right: 4px; border: 1px solid #2d3756; border-bottom-width: 2px; border-radius: 4px; background: #1a2136; }
 .kv { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .kv b { font: 500 12px var(--mono); color: var(--fg); display: inline-block; text-align: right; }
@@ -245,12 +253,15 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #eyeTitle { display: block; position: absolute; left: 9px; top: 8px; font-size: 9px; line-height: 1.2; text-shadow: 0 0 3px #000; pointer-events: none; }
   /* The warning covers the corner of the small camera view rather than making the box taller. */
   #sunWarn { position: absolute; left: 5px; right: 5px; bottom: 5px; padding: 3px 4px; border-radius: 4px; background: rgba(4, 6, 13, 0.88); font-size: 10px; line-height: 1.25; }
-  /* The tabs, help and Hide share one row. The header's own box goes, so its buttons join the panel's grid. The title
+  /* The tabs, Alpha, help and Hide share one row. The header's own box goes, so its buttons join the panel's grid. The title
      stays for screen readers, and shows when the tabs are hidden. */
-  #panel { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; }
+  #panel { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; }
   #panel header { display: contents; }
   #panel header button { grid-row: 1; min-width: 40px; min-height: 40px; padding: 4px 10px; margin: 2px 4px 2px 0; }
   #panel header button[aria-expanded] { margin-right: 8px; }
+  /* In the row of tabs, shortened to "Alpha". */
+  #panel header #about { order: 0; flex: none; margin: 2px 4px 2px 0; padding: 4px 8px; border: 1px solid #2d3756; background: #1a2136; text-decoration: none; }
+  #about .long { display: none; }
   h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #panel.closed h1 { position: static; grid-column: 1; grid-row: 1; width: auto; height: auto; overflow: visible; clip-path: none; padding-left: 12px; font-size: 20px; white-space: normal; }
   [role=tablist] { grid-column: 1; grid-row: 1; padding: 0 4px 0 8px; border-bottom: 0; }
@@ -295,6 +306,11 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   body:has(#panel.closed) #readout, body:has(#panel.closed) #ladder { left: var(--pl); }
   body:has(#panel.closed) #readout { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); }
   body:has(#panel.closed) #ladder { bottom: 44px; bottom: calc(anchor(--readout top) + 4px); }
+  /* The row of tabs has no room for Alpha, so it goes at the panel's foot in full, or beside the title when the
+     panel is hidden. */
+  #panel { grid-template-rows: auto minmax(0, 1fr) auto; }
+  #panel:not(.closed) header #about { grid-row: 3; grid-column: 1 / -1; margin: 0; padding: 0 12px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; background: none; text-align: left; text-decoration: underline; }
+  #panel:not(.closed) #about .long { display: inline; }
 }
 /* Without anchor positioning the strip's place is fixed, so it makes room for the open readout, 30 px taller than its row. */
 @supports not (top: anchor(--a top)) {

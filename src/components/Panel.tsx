@@ -17,6 +17,8 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
     <aside id="panel" aria-label="Lessons and controls" ref={ref} className={closed ? 'closed' : ''}>
       <header>
         <h1>Orbit <span>to</span> Focus</h1>
+        {/* Below the title on larger screens; on phones it shortens to "Alpha" in the row of tabs. */}
+        <button type="button" id="about" title="About this alpha, and how to report a mistake (I)" onClick={() => ui.set({ dialog: 'about' })}>Alpha<span className="long">: feedback welcome</span></button>
         <CopyLink id="copyLink" icon />
         <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
         <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
@@ -214,10 +216,6 @@ function SkyTab({ scene }: { scene: SceneApi | null }) {
       <fieldset>
         <legend>Date and time (UTC)</legend>
         <div className="row"><input type="datetime-local" aria-label="Set date and time in UTC" onChange={(e) => { const t = Date.parse(e.target.value + 'Z'); if (!isNaN(t)) scene?.setTime(t); }} /></div>
-      </fieldset>
-      <fieldset>
-        <legend>About</legend>
-        <p className="hint">Positions use low-precision formulas (Sun and Moon to about a degree) and ignore precession. Star data: d3-celestial (Hipparcos to magnitude 6). Coastlines: Natural Earth via world-atlas. The Seestar S50 Pro body follows ZWO’s published drawing; its lens is modelled as a two-element ED doublet with the published 50 mm aperture and 260 mm focal length (the real lens has four elements and a folded light path).</p>
       </fieldset>
     </>
   );

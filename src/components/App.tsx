@@ -7,6 +7,7 @@ import { locate } from '../geo.ts';
 import { Panel } from './Panel.tsx';
 import { EyeBox, Ladder, Readout, TimeBar } from './Hud.tsx';
 import { Shortcuts } from './Shortcuts.tsx';
+import { About } from './About.tsx';
 
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null), labels = useRef<HTMLDivElement>(null), eyeview = useRef<HTMLCanvasElement>(null);
@@ -71,6 +72,7 @@ export function App() {
       <Panel scene={scene} ref={panel} />
       <TimeBar scene={scene} />
       <Shortcuts scene={scene} />
+      <About />
       {/* Before the readout and the ladder, which are anchored to it. */}
       <EyeBox ref={eyeview} />
       <Readout />
