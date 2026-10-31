@@ -80,6 +80,15 @@ it('names no screen corner or edge', () => {
   for (let i = 0; i < LESSONS.length; i++) expect(text(i)).not.toMatch(/\b(top|bottom) (left|right)\b|\b(of|on) the screen\b/i);
 });
 
+// Phones fold the hour angle into the readout and sidereal time into the time bar's ⋯ menu; styles.css shows
+// .phone-only text only in the phone layouts.
+it('tells phone readers where the meridian step’s hour angle and sidereal time are', () => {
+  const html = renderToStaticMarkup(LESSONS[lesson('The meridian')].body as ReactElement);
+  const phone = /<p class="phone-only">([^<]*)<\/p>/.exec(html)?.[1];
+  expect(phone).toMatch(/tap the box that shows the target’s name to see its hour angle/);
+  expect(phone).toMatch(/tap ⋯ in the time bar to see the sidereal time/);
+});
+
 // Altitude in degrees of the current target, which must be a star.
 const targetAlt = (ms: number) => {
   const { target, lat, lon } = settings.get(), [, ra, dec] = TARGETS[target];

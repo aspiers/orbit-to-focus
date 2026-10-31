@@ -170,6 +170,18 @@ test.describe('controls', () => {
     }
   });
 
+  // Phones fold the hour angle and sidereal time away, so the step that teaches them says where they went.
+  test('the meridian step tells phones where hour angle and sidereal time are', async ({ page }) => {
+    await open(page, '#lesson=8');
+    await expect(page.getByRole('heading', { name: 'The meridian' })).toBeVisible();
+    const note = page.locator('#lessonBody').getByText('On a phone, tap');
+    for (const [width, height] of [[1280, 800], [768, 1024], [390, 844], [667, 375]]) {
+      await page.setViewportSize({ width, height });
+      if (width >= 700) await expect(note, `${width} x ${height}`).toBeHidden();
+      else await expect(note, `${width} x ${height}`).toBeVisible();
+    }
+  });
+
   test('on phones the hidden panel can be shown again', async ({ page }) => {
     await open(page);
     const tabs = page.locator('#panel [role=tablist]');

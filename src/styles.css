@@ -192,10 +192,14 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #ladder[data-l='1'][data-r='1'] { mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
 }
 
+/* Guide text for the phone layouts below, which fold some readings away. */
+.phone-only { display: none; }
+
 /* Phones, portrait and landscape: a compact time bar, readout and camera view, and touch targets of about 40px.
    The time bar is one row: the clock on two lines, slower, pause, faster, the speed and a button for the rest. */
 @media (max-width: 600px) and (orientation: portrait), (orientation: landscape) and (max-height: 500px) {
   :root { --gap: 8px; }
+  .phone-only { display: revert; }
   #timebar { flex-wrap: nowrap; gap: 3px; padding: 4px; border-radius: 8px; z-index: 3; }
   #timebar button, #timebar select { min-height: 40px; min-width: 38px; padding: 4px 5px; font-size: 13px; }
   #timebar #clock { flex: none; font-size: 11px; line-height: 1.25; padding: 2px 3px; min-width: 0; text-align: left; }
