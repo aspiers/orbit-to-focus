@@ -49,19 +49,23 @@ export function App() {
   // Centre the 3D view in the part of the screen the panels leave uncovered.
   useEffect(() => {
     if (!scene) return;
+    // The time bar resizes as its values change; an unchanged shift must not wake the renderer.
+    let last = '';
+    const shift = (dx: number, dy: number) => { if (`${dx},${dy}` !== last) scene.setViewShift(dx, dy); last = `${dx},${dy}`; };
     const update = () => {
       const p = panel.current!.getBoundingClientRect(), l = ladder.current!.getBoundingClientRect();
       // The compact phone layouts leave a band of sky between the time bar and the zoom strip, and on short landscape
       // screens right of the panel's column.
       const bar = document.getElementById('timebar')!.getBoundingClientRect();
       const landscape = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
-      if (landscape) scene.setViewShift(panel.current!.classList.contains('closed') ? 0 : p.right / 2, (innerHeight - l.top - bar.bottom) / 2);
-      else if (matchMedia('(max-width: 600px)').matches) scene.setViewShift(0, (innerHeight - l.top - bar.bottom) / 2);
-      else if (innerWidth > 860) scene.setViewShift((p.right - (innerWidth - l.left)) / 2, 0);
-      else scene.setViewShift(0, (innerHeight - p.top - 110) / 2);
+      if (landscape) shift(panel.current!.classList.contains('closed') ? 0 : p.right / 2, (innerHeight - l.top - bar.bottom) / 2);
+      else if (matchMedia('(max-width: 600px)').matches) shift(0, (innerHeight - l.top - bar.bottom) / 2);
+      else if (innerWidth > 860) shift((p.right - (innerWidth - l.left)) / 2, 0);
+      else shift(0, (innerHeight - p.top - 110) / 2);
     };
     const ro = new ResizeObserver(update);
-    ro.observe(panel.current!); ro.observe(document.body);
+    // The panel, time bar and zoom stops change size when hidden or shown.
+    for (const e of [panel.current!, ladder.current!, document.getElementById('timebar')!, document.body]) ro.observe(e);
     update();
     return () => ro.disconnect();
   }, [scene]);

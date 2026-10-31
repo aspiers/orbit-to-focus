@@ -6,7 +6,7 @@ import { fmtRatio } from '../format.ts';
 import { here, locate } from '../geo.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
-import { CopyLink } from './Hud.tsx';
+import { CopyLink, HideButton } from './Hud.tsx';
 import { ShareButton } from './Share.tsx';
 
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
@@ -23,7 +23,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
         <CopyLink id="copyLink" icon />
         <ShareButton id="shareBtn" icon />
         <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
-        <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
+        <HideButton name="lessons and controls" closed={closed} toggle={() => setClosed(!closed)} />
       </header>
       <div role="tablist">
         {([['guide', 'Guide'], ['scope', 'Telescope'], ['sky', 'Sky & place']] as const).map(([id, name]) => (

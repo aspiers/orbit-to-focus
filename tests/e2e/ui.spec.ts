@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { ladder, open, settle, START } from './helpers.ts';
+import { last, ladder, open, pause, settle, START } from './helpers.ts';
 
 const speed = (page: Page) => page.locator('#speed');
 const clock = (page: Page) => page.locator('#clock');
@@ -188,9 +188,9 @@ test.describe('controls', () => {
     const tabs = page.locator('#panel [role=tablist]');
     for (const [width, height] of [[390, 844], [360, 740]]) {
       await page.setViewportSize({ width, height });
-      await page.getByRole('button', { name: 'Hide' }).click();
+      await page.getByRole('button', { name: 'Hide the lessons and controls' }).click();
       await expect(tabs).toBeHidden();
-      const show = page.getByRole('button', { name: 'Show' });
+      const show = page.getByRole('button', { name: 'Show the lessons and controls' });
       // The hidden panel once sat at the top of the screen, behind the time bar.
       const [b] = await boxes(page, '#panel header button[aria-expanded]');
       expect(b.left >= 0 && b.top >= 0 && b.right <= width && b.bottom <= height, `${width} x ${height}: ${fmt(b)} off screen`).toBe(true);
@@ -206,10 +206,10 @@ test.describe('controls', () => {
       await expect(tabs).toBeVisible();
     }
     // And from the keyboard.
-    await page.getByRole('button', { name: 'Hide' }).focus();
+    await page.getByRole('button', { name: 'Hide the lessons and controls' }).focus();
     await page.keyboard.press('Enter');
     await expect(tabs).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Show' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Show the lessons and controls' })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(tabs).toBeVisible();
   });
@@ -227,7 +227,7 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
       for (const step of steps) {
         while (+(await page.locator('#panel .step').textContent())!.split(' ')[0] < step) await page.keyboard.press('PageDown');
         for (const hidden of [false, true]) {
-          if (hidden) await page.getByRole('button', { name: 'Hide' }).tap({ force: true });
+          if (hidden) await page.getByRole('button', { name: 'Hide the lessons and controls' }).tap({ force: true });
           await page.waitForTimeout(300);
           const m = await page.evaluate(measureHud);
           const where = `${width} x ${height}, step ${step}, panel ${hidden ? 'hidden' : 'open'}`;
@@ -250,7 +250,7 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
             const next = (await page.getByRole('button', { name: 'Next', exact: true }).boundingBox())!;
             expect.soft(next.y + next.height, `${where}: bottom of the guide's Next button, unscrolled`).toBeLessThanOrEqual(height);
           }
-          if (hidden) await page.getByRole('button', { name: 'Show' }).tap({ force: true });
+          if (hidden) await page.getByRole('button', { name: 'Show the lessons and controls' }).tap({ force: true });
         }
       }
     });
@@ -308,6 +308,59 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
   });
 }
 
+// Each of the five parts around the edge folds down to its icon and comes back, which stays on screen, clear of the
+// others, and uncovered. Phones keep the time bar's icon in the ⋯ popover, for want of room in the bar.
+const PARTS: [string, string][] = [
+  ['lessons and controls', '#panel [role=tablist]'], ['time controls', '#clock'], ['zoom stops', '#ladder button >> nth=1'],
+  ['target coordinates', '#readout .name'], ['camera view', '#eyebox canvas'],
+];
+for (const [width, height] of [[1280, 800], [768, 1024], [390, 844], [360, 640], [667, 375]]) {
+  const phone = width < 700 || height < 500;
+  test.describe(`${width} x ${height}`, () => {
+    test.use({ viewport: { width, height }, isMobile: width < 1000, hasTouch: width < 1000 });
+    test('each part hides to its icon and comes back', async ({ page }) => {
+      await open(page);
+      for (const [name, inside] of PARTS) {
+        const content = page.locator(inside);
+        await expect(content, name).toBeVisible();
+        if (phone && name === 'time controls') await page.getByRole('button', { name: 'More controls' }).click();
+        await page.getByRole('button', { name: `Hide the ${name}` }).click();
+        await expect(content, name).toBeHidden();
+        const show = page.getByRole('button', { name: `Show the ${name}` });
+        await expect(show).toHaveAttribute('aria-expanded', 'false');
+        await expect(show).toBeInViewport({ ratio: 1 });
+        if (phone && name === 'time controls') await expect(show, 'focus follows the button out of the popover').toBeFocused();
+        await show.click();
+        await expect(content, name).toBeVisible();
+        const hide = phone && name === 'time controls' ? page.locator('#timebar > .hide-btn') : page.getByRole('button', { name: `Hide the ${name}` });
+        await expect(hide).toHaveAttribute('aria-expanded', 'true');
+      }
+      // All hidden at once: the icons keep clear of each other and the screen's edges.
+      for (const [name] of PARTS) {
+        if (phone && name === 'time controls') await page.getByRole('button', { name: 'More controls' }).click();
+        await page.getByRole('button', { name: `Hide the ${name}` }).click();
+      }
+      await expect(page.locator('.hide-btn[aria-expanded=false]')).toHaveCount(5);
+      const m = await page.evaluate(measureHud);
+      expect.soft(m.overlaps, 'icons overlap').toEqual([]);
+      expect.soft(m.off, 'icons off screen').toEqual([]);
+      expect.soft(m.covered, 'icons under something else').toEqual([]);
+      if (phone) expect.soft(m.small, 'touch targets under 38 px').toEqual([]);
+    });
+  });
+}
+
+// Hiding the zoom stops frees their column, and the 3D view re-centres in the wider space it leaves.
+test('the view re-centres when the zoom stops are hidden', async ({ page }) => {
+  await open(page, '#view=earth');
+  await pause(page);
+  const before = (await settle(page)).earth!;
+  await page.getByRole('button', { name: 'Hide the zoom stops' }).click();
+  await page.waitForTimeout(300);
+  const after = (await last(page)).earth!;
+  expect(after[0] - before[0], `the Earth's centre moved from ${before[0]} px to ${after[0]} px`).toBeGreaterThan(40);
+});
+
 // Alpha reviewers need the way to report a mistake within reach at every size, with the panel open or hidden. On short
 // landscape screens the row of tabs has no room for it, so it moves to the panel's foot.
 for (const [width, height] of [[1280, 800], [390, 844], [667, 375]]) {
@@ -321,7 +374,7 @@ for (const [width, height] of [[1280, 800], [390, 844], [667, 375]]) {
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       for (const hidden of [false, true]) {
-        if (hidden) await page.getByRole('button', { name: 'Hide' }).click();
+        if (hidden) await page.getByRole('button', { name: 'Hide the lessons and controls' }).click();
         await expect(about, `panel ${hidden ? 'hidden' : 'open'}`).toBeInViewport({ ratio: 1 });
         await about.click();
         await expect(dialog).toBeVisible();
@@ -418,7 +471,7 @@ function measureHud() {
   }))));
   const strip = document.getElementById('ladder')!;
   const scrolls = strip.scrollWidth > strip.clientWidth + 1;
-  const controls = [...document.querySelectorAll('#timebar button, #timebar select, #ladder button, #readoutMore, #eyebox canvas, #panel header button, #panel [role=tab], #panel [role=tabpanel] button')].filter(vis);
+  const controls = [...document.querySelectorAll('.hide-btn, #timebar button, #timebar select, #ladder button, #readoutMore, #eyebox canvas, #panel header button, #panel [role=tab], #panel [role=tabpanel] button')].filter(vis);
   const off: string[] = [], covered: string[] = [], small: string[] = [];
   for (const e of controls) {
     const r = rect(e), inPanelBody = !!e.closest('[role=tabpanel]');
@@ -441,8 +494,8 @@ function measureHud() {
     if (getComputedStyle(root).display === 'contents') continue;
     const R = root.getBoundingClientRect();
     for (const e of root.querySelectorAll('*')) {
-      // The readout's button is taller than the row, for a bigger tap target.
-      if (!vis(e) || e.closest('#readoutMore')) continue;
+      // The readout's buttons are taller than the row, for bigger tap targets.
+      if (!vis(e) || e.closest('#readoutMore, #readout .hide-btn')) continue;
       const r = e.getBoundingClientRect();
       if (r.left < R.left - 1 || r.right > R.right + 1 || r.top < R.top - 1 || r.bottom > R.bottom + 1) spill.push(`${name(e)} in ${root.id || name(root)}`);
     }
@@ -462,7 +515,7 @@ function measureHud() {
   // is taller than the chip you see, by its transparent top and bottom borders.
   const oneRow = (es: Element[]) => { const c = es.map((e) => { const r = e.getBoundingClientRect(); return (r.top + r.bottom) / 2; }); return Math.max(...c) - Math.min(...c) <= 8 ? 1 : 2; };
   const height = (q: string) => { const e = document.querySelector(q); return e && vis(e) ? e.getBoundingClientRect().height : 0; };
-  const chip = document.querySelector('#ladder button')!, chipBorder = parseFloat(getComputedStyle(chip).borderTopWidth);
+  const chip = document.querySelector('#ladder button:not(.hide-btn)')!, chipBorder = parseFloat(getComputedStyle(chip).borderTopWidth);
   const panel = document.getElementById('panel')!, body = document.querySelector('#panel [role=tabpanel]');
   const h = {
     timebar: height('#timebar'), readout: height('#readout'), eyebox: height('#eyebox'), chip: chip.getBoundingClientRect().height - 2 * chipBorder,

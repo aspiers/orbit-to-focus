@@ -24,11 +24,22 @@ export function CopyLink({ id, icon }: { id?: string; icon?: boolean }) {
   </button>;
 }
 
+// Folds a part of the HUD down to this button, for the session, and brings it back. The chevron points the way the
+// part folds; styles.css turns it.
+export function HideButton({ name, closed, toggle, className = '' }: { name: string; closed: boolean; toggle: () => void; className?: string }) {
+  const label = `${closed ? 'Show' : 'Hide'} the ${name}`;
+  return <button type="button" className={`hide-btn ${className}`} title={label} aria-label={label} aria-expanded={!closed} onClick={toggle}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  </button>;
+}
+
 export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const clock = useStore(live, (l) => l.clock), lst = useStore(live, (l) => l.lst), sunAlt = useStore(live, (l) => l.sunAlt);
   const speed = useStore(settings, (s) => s.speed), backwards = useStore(settings, (s) => (s.speed || s.lastSpeed) < 0);
   const timeOpen = useStore(ui, (u) => u.dialog === 'time');
-  const [more, setMore] = useState(false);
+  const [more, setMore] = useState(false), [closed, setClosed] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
   // Phones fold Now, the direction, the two readings, Copy link and Share into a popover; a tap elsewhere or Escape closes it.
   useEffect(() => {
@@ -51,10 +62,16 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       <span className="kv">Sun alt<span className="long">itude</span> <b className="w6">{fmtDeg(sunAlt, true)}</b></span>
     </span>
   );
+  // Phones have no room in the bar for the hide button, so it goes in the popover, and the hidden bar shows the
+  // bar's own copy.
+  const hide = (c: string) => <HideButton name="time controls" className={c} closed={closed} toggle={() => {
+    setClosed(!closed); setMore(false);
+    if (!closed) requestAnimationFrame(() => bar.current?.querySelector<HTMLElement>(':scope > .hide-btn')?.focus());
+  }} />;
   // The dialog sits outside the bar: the bar's backdrop blur would make it the dialog's positioning frame.
   return (
     <>
-    <div id="timebar" role="group" aria-label="Time" ref={bar}>
+    <div id="timebar" role="group" aria-label="Time" ref={bar} className={closed ? 'closed' : ''}>
       <button type="button" id="clock" title="Set the date and time (T)" aria-expanded={timeOpen} onClick={() => ui.set((u) => ({ dialog: u.dialog === 'time' ? null : 'time' }))}>
         {/* The date and time take a line each on phones. */}
         <span className="clock-date">{clock.slice(0, 10)}</span> <span>{clock.slice(11)}</span>
@@ -69,7 +86,8 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       {direction('desk')}
       {readings('desk')}
       <button type="button" id="moreBtn" title="More controls" aria-label="More controls" aria-expanded={more} aria-controls="moreTime" onClick={() => setMore(!more)}>⋯</button>
-      {more && <div id="moreTime" role="group" aria-label="More controls">{now('')}{direction('')}<CopyLink /><ShareButton />{readings('')}</div>}
+      {more && <div id="moreTime" role="group" aria-label="More controls">{now('')}{direction('')}<CopyLink /><ShareButton />{hide('')}{readings('')}</div>}
+      {hide('desk')}
     </div>
     <TimeDialog scene={scene} />
     </>
@@ -106,6 +124,7 @@ export const Ladder = forwardRef<HTMLElement, { scene: SceneApi | null }>(functi
   const stop = useStore(live, (l) => l.stop);
   const band = stop === 'solar' ? 'solar' : stop === 'moon' || stop === 'earth' ? 'earth' : stop === 'optics' || stop === 'focus' ? 'optics' : 'site';
   const nav = useRef<HTMLElement | null>(null);
+  const [closed, setClosed] = useState(false);
   const setRef = (e: HTMLElement | null) => { nav.current = e; if (typeof ref === 'function') ref(e); else if (ref) ref.current = e; };
   // Where the strip on phones is cut off, its edge fades; styles.css reads these.
   const edges = () => {
@@ -125,7 +144,8 @@ export const Ladder = forwardRef<HTMLElement, { scene: SceneApi | null }>(functi
     edges();
   }, [stop]);
   return (
-    <nav id="ladder" aria-label="Zoom to scale" ref={setRef} onScroll={edges}>
+    <nav id="ladder" aria-label="Zoom to scale" ref={setRef} onScroll={edges} className={closed ? 'closed' : ''}>
+      <HideButton name="zoom stops" closed={closed} toggle={() => setClosed(!closed)} />
       {STOPS.map((s) => (
         <button type="button" key={s.id} aria-current={stop === s.id} onClick={() => scene?.goTo(s.id)}>
           <span>{s.name}</span><small>{s.hint}</small>
@@ -144,9 +164,9 @@ export function Readout() {
   const name = useStore(settings, (s) => TARGETS[s.target][0]);
   const lat = useStore(settings, (s) => s.lat);
   // Phones show the name, altitude and azimuth on one row; a tap on it opens the rest.
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false), [closed, setClosed] = useState(false);
   return (
-    <div id="readout" aria-label="Target coordinates" className={`${open ? 'open' : ''} ${l.alt <= 0 ? 'below' : ''}`}>
+    <div id="readout" aria-label="Target coordinates" className={`${open ? 'open' : ''} ${l.alt <= 0 ? 'below' : ''} ${closed ? 'closed' : ''}`}>
       <div className="title"><span className="name">{name === 'Custom' ? 'Custom target' : name}</span>{l.alt <= 0 && <span id="rHorizon">Below your horizon</span>}</div>
       <span className="grp extra"><span className="kv k-eq">RA <b>{fmtHM(l.ra)}</b></span><span className="kv k-eq">Dec <b className="w6">{fmtDeg(l.dec, true)}</b></span></span>
       <span className="grp extra"><span className="kv k-mer">Hour angle <b className="w8">{fmtSignedHM(l.ha)}</b></span></span>
@@ -154,6 +174,7 @@ export function Readout() {
       <span className="kv extra">Latitude <b className="w5">{Math.abs(lat * R2D).toFixed(1)}°</b> <b>{lat >= 0 ? 'N' : 'S'}</b></span>
       <i className="brk" aria-hidden="true" />
       <button type="button" id="readoutMore" title="More coordinates" aria-label="More coordinates" aria-expanded={open} onClick={() => setOpen(!open)}><i aria-hidden="true">{open ? '▴' : '▾'}</i></button>
+      <HideButton name="target coordinates" closed={closed} toggle={() => setClosed(!closed)} />
     </div>
   );
 }
@@ -162,9 +183,12 @@ export const EyeBox = forwardRef<HTMLCanvasElement>(function EyeBox(_, ref) {
   const info = useStore(scopeInfo, (s) => s);
   const sunInView = useStore(live, (l) => l.sunInView);
   const f = info.focalLength / info.aperture;
+  const [closed, setClosed] = useState(false);
+  const title = info.sensor ? 'Camera view' : 'Eyepiece view';
+  // Hidden, the canvas still draws: it is also the picture on the 3D model's screen.
   return (
-    <div id="eyebox">
-      <div id="eyeTitle">{info.sensor ? 'Camera view' : 'Eyepiece view'}</div>
+    <div id="eyebox" className={closed ? 'closed' : ''}>
+      <div id="eyeTitle">{title}</div>
       <canvas ref={ref} width={392} height={392} title="Drag to steer the telescope" />
       <div id="eyeCaption">
         {info.field
@@ -172,6 +196,7 @@ export const EyeBox = forwardRef<HTMLCanvasElement>(function EyeBox(_, ref) {
           : `${info.magnification?.toFixed(0)}× with a 25 mm eyepiece · ${info.trueField?.toFixed(2)}° field`}
       </div>
       {sunInView && <div id="sunWarn">The Sun is in view. Never point a telescope at the Sun without a proper solar filter.</div>}
+      <HideButton name={title.toLowerCase()} closed={closed} toggle={() => setClosed(!closed)} />
     </div>
   );
 });

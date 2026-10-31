@@ -177,6 +177,31 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 #eyeCaption { font-size: 11px; color: var(--muted); }
 #sunWarn { color: var(--warn); font-size: 12px; font-weight: 600; }
 
+/* Each part's hide button. The chevron points the way the part folds (--fold), and back the other way once hidden. */
+.hide-btn { display: flex; align-items: center; justify-content: center; flex: none; box-sizing: border-box; min-width: 28px; min-height: 28px; padding: 0; color: var(--muted); }
+.hide-btn:hover { color: var(--fg); }
+.hide-btn svg { rotate: var(--fold, 0deg); }
+.hide-btn[aria-expanded=false] svg { rotate: calc(var(--fold, 0deg) + 180deg); }
+#panel { --fold: -90deg; }
+#ladder { --fold: -90deg; }
+#readout { --fold: 180deg; }
+/* Beside the top stop, out of the column, which has no height to spare on short windows. */
+#ladder .hide-btn { position: absolute; top: 0; right: calc(100% + 4px); background: var(--panel); border-color: var(--line); }
+#eyebox { --fold: 90deg; }
+#eyebox .hide-btn { position: absolute; top: 4px; right: 4px; min-width: 24px; min-height: 24px; }
+#readout .hide-btn { position: absolute; top: 6px; left: 6px; }
+#readout .title { padding-left: 30px; }
+/* Hidden, a part folds down to its hide button, which stays where it was. */
+:is(#timebar, #ladder, #readout, #eyebox).closed .hide-btn { position: static; }
+#timebar.closed { left: auto; }
+#ladder.closed, #readout.closed { width: fit-content; container-type: normal; }
+#eyebox.closed { width: auto; padding: 4px; }
+/* With no box of its own: the button is the box. */
+:is(#timebar, #readout, #eyebox).closed { padding: 0; border-color: transparent; background: none; backdrop-filter: none; }
+#timebar.closed > .hide-btn { display: flex; }
+/* Room for the hide button on one row at 1280 px: the readings shorten as on phones. */
+@media (min-width: 861px) and (max-width: 1319px) { #timebar .readings .long { display: none; } }
+
 #panel.closed [role=tablist], #panel.closed [role=tabpanel] { display: none; }
 #panel.closed { bottom: auto; }
 
@@ -195,6 +220,9 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #eyebox { top: 104px; top: calc(anchor(--timebar bottom) + 8px); bottom: auto; width: 124px; padding: 6px; }
   #eyebox canvas { width: 112px; height: 112px; }
   #eyeCaption { display: none; }
+  #panel { --fold: 90deg; }
+  #ladder { --fold: 180deg; }
+  #eyebox { --fold: -90deg; }
   body:has(#panel.closed) #ladder { bottom: 110px; }
   body:has(#panel.closed) #readout { bottom: 60px; }
   /* Above the panel however tall the safe area makes it, and the ladder above the readout however many rows it
@@ -205,8 +233,10 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 /* The sideways strip of zoom stops fades where it is cut off, as a cue that it scrolls (Ladder sets the data attributes). */
 @media (max-width: 860px), (orientation: landscape) and (max-height: 500px) {
   #ladder[data-r='1'] { mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
-  #ladder[data-l='1'] { mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
-  #ladder[data-l='1'][data-r='1'] { mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+  /* The left fade starts after the hide button, which stays at the strip's left end as the stops scroll under it. */
+  #ladder[data-l='1'] { mask-image: linear-gradient(to right, #000 42px, transparent 42px, #000 78px); }
+  #ladder[data-l='1'][data-r='1'] { mask-image: linear-gradient(to right, #000 42px, transparent 42px, #000 78px, #000 calc(100% - 36px), transparent); }
+  #ladder .hide-btn { align-self: auto; right: auto; position: sticky; left: 0; z-index: 1; background-color: var(--panel-solid); }
 }
 
 /* Guide text for the phone layouts below, which fold some readings away. */
@@ -252,9 +282,18 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #ladder { gap: 4px; }
   #ladder button, #ladder button[aria-current=true] { flex-direction: row; align-items: center; min-height: 40px; padding: 0 10px; border-width: 4px 0; border-color: transparent; background-clip: padding-box; box-shadow: inset 0 0 0 1px var(--line); font-size: 13px; }
   #ladder button[aria-current=true] { box-shadow: inset 0 0 0 1px var(--accent), inset 3px 0 0 var(--accent); }
+  #ladder .hide-btn { min-width: 38px; padding: 0; border-color: transparent; }
+  .hide-btn { min-width: 38px; min-height: 40px; }
+  /* On the left of the row, above the readout's own button, which covers the rest. */
+  #readout { padding-left: 38px; }
+  #readout .title { padding-left: 0; }
+  #readout:not(.closed) .hide-btn { z-index: 1; inset: -4px auto -4px 0; min-height: 0; background: none; border: 0; }
   #eyeCaption { display: none; }
   #eyebox { width: auto; bottom: auto; top: 64px; top: calc(anchor(--timebar bottom) + 6px); padding: 5px; }
   #eyebox canvas { width: 76px; height: 76px; }
+  /* Beside the picture rather than over it. */
+  #eyebox:not(.closed) { --fold: 0deg; padding-right: 47px; }
+  #eyebox .hide-btn { top: 5px; right: 5px; min-width: 38px; min-height: 40px; }
   /* The title goes over the picture's corner rather than above it. */
   #eyeTitle { display: block; position: absolute; left: 9px; top: 8px; font-size: 9px; line-height: 1.2; text-shadow: 0 0 3px #000; pointer-events: none; }
   /* The warning covers the corner of the small camera view rather than making the box taller. */
@@ -308,6 +347,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #ladder button { flex: none; }
   #ladder button small, #scaleNote { display: none; }
   #ladder .eye-btn { margin-top: 0; }
+  #panel { --fold: -90deg; }
+  #ladder { --fold: 180deg; }
   /* With the panel hidden, the readout and zoom strip use the room below its header too. */
   body:has(#panel.closed) #readout, body:has(#panel.closed) #ladder { left: var(--pl); }
   body:has(#panel.closed) #readout { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap)); }
@@ -328,4 +369,6 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
     body:has(#readout.open) #ladder, body:has(#readout.open):has(#panel.closed) #ladder { bottom: 74px; }
   }
 }
+/* Last, so it beats the layouts' display rules. The panel keeps its header instead (above). */
+:is(#timebar, #ladder, #readout, #eyebox).closed > :not(.hide-btn) { display: none; }
 @media (prefers-reduced-motion: reduce) { .rate .bar i { transition: none; } }
