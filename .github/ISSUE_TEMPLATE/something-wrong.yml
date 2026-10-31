@@ -1,0 +1,30 @@
+name: Something's wrong
+description: A mistake in the astronomy or optics, a confusing guide step, or something that doesn't work.
+body:
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: >-
+        The guide step or zoom level, or a link to the view. Copy link (the link icon, or the U key) copies the
+        page address without your location.
+      placeholder: https://orbit-to-focus.vercel.app/#lesson=8
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What's wrong
+      description: What the app shows or says.
+    validations:
+      required: true
+  - type: textarea
+    id: right
+    attributes:
+      label: What it should be
+      description: What you'd expect instead, and a source if you have one.
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: Pixel 8, Chrome; or MacBook Air, Safari
