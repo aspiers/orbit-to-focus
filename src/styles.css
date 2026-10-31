@@ -126,7 +126,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   bottom: calc(env(safe-area-inset-bottom, 0px) + 269px); display: flex; flex-direction: column; gap: 4px; width: 168px; container-type: size; pointer-events: none; }
 #ladder > * { pointer-events: auto; }
 /* Below the time bar however many rows it wraps onto, and above the camera view; 72px and 269px above are for
-   browsers without anchor positioning. When that leaves too little room the hints go, then the scale note. */
+   browsers without anchor positioning. When that leaves too little room the hints go, then the scale note, then
+   the buttons slim down: 314 px is what the bare buttons need, as on windows about 650 px tall. */
 #ladder { top: calc(anchor(--timebar bottom) + 7px); bottom: calc(anchor(--eyebox top) + var(--gap)); }
 @container (height < 582px) { #ladder button small { display: none; } }
 @container (height < 374px) { #scaleNote { display: none; } }
@@ -136,6 +137,8 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
 #timebar button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); }
 #ladder button[aria-current=true] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 #ladder .eye-btn { margin-top: 6px; }
+/* After the rules it overrides, which are as specific. */
+@container (height < 314px) { #ladder button { padding-block: 2px; } #ladder .eye-btn { margin-top: 2px; } }
 #scaleNote { font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-top: 6px; overflow-y: auto; }
 
 /* Bottom: readout strip and camera view */

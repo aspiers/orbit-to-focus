@@ -148,8 +148,9 @@ test.describe('controls', () => {
     // are below the horizon now, which adds a warning.
     await page.getByRole('tab', { name: 'Telescope' }).click();
     const target = page.getByRole('combobox', { name: 'Target', exact: true });
-    // The time bar takes one row at 1280 px, two at 1024 and three at 900.
-    for (const [width, height] of [[1920, 1080], [1280, 800], [1280, 720], [1024, 768], [900, 700], [768, 1024], ...PHONES, ...LANDSCAPE]) {
+    // The time bar takes one row at 1280 px, two at 1024 and three at 900. At 1200 x 630 and 1280 x 650 the zoom
+    // buttons, even without their hints, once ran on over the camera view.
+    for (const [width, height] of [[1920, 1080], [1280, 800], [1280, 720], [1024, 768], [900, 700], [1200, 630], [1280, 650], [768, 1024], ...PHONES, ...LANDSCAPE]) {
       await page.setViewportSize({ width, height });
       await page.waitForTimeout(300);
       for (const [a, b, gap] of apart) {
