@@ -435,6 +435,16 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     if (elev < need) camera.rotateX((need - elev) * k);
   }
 
+  // The season and ecliptic labels hang off to the right of their points, about this many px.
+  const SOLAR_LABEL = 120, SOLAR_L = STOPS.find((x) => x.id === 'solar')!.L;
+  // How much further back the solar system view must stand for Earth's orbit and those labels to fit the width
+  // the panels leave clear. The field of view is fixed vertically, so on portrait screens the orbit would be wider
+  // than the screen.
+  function solarFit() {
+    const free = Math.max(100, canvas.clientWidth - 2 * Math.abs(shift.dx) - 24 - SOLAR_LABEL);
+    return Math.max(1, (ORBIT_R * canvas.clientHeight) / (Math.tan(25 * D2R) * free * 10 ** SOLAR_L));
+  }
+
   const qA = new THREE.Quaternion(), qB = new THREE.Quaternion();
   function placeCamera(w: Weights, s: Settings, pull: number, dt: number) {
     const { L } = cam;
@@ -514,7 +524,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // the zenith shows. Arriving, the camera is brought no higher than keeps the ground in the bottom 20%, but
     // like the other framing rules that never pulls back a drag.
     const kFrame = fSite * (1 - fWorld) * smooth(L, LM + 0.1, LM + 0.4) * (anim?.climb ? 1 - climbing : 1 - smooth(L, LM + 1.2, LM + 2.0));
-    let dist = d;
+    let dist = d * lerp(1, solarFit(), w.sol);
     if (kFrame > 0) {
       const t = Math.tan((groundFov * D2R) / 2), lift = Math.atan(0.5 * t), hi = lift - Math.atan(0.55 * t);
       const rise = (mount.anchorHeight - 0.1) * METRE; // from the camera's lowest point up to the telescope
@@ -829,7 +839,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     const dist = camera.position.distanceTo(anchor.scope), distM = dist / (METRE * earthSys.scale.x);
     const grow = clamp((minAngle * dist) / tubeLen, 1, 0.4 / (tubeM * METRE));
     model.group.scale.setScalar(1 + (grow - 1) * smooth(distM, 15, 60));
-    for (const c of [camera, bgCamera]) c.setViewOffset(canvas.clientWidth, canvas.clientHeight, -shift.dx, shift.dy, canvas.clientWidth, canvas.clientHeight);
+    for (const c of [camera, bgCamera]) c.setViewOffset(canvas.clientWidth, canvas.clientHeight, -shift.dx + (SOLAR_LABEL / 2) * w.sol, shift.dy, canvas.clientWidth, canvas.clientHeight);
     bgCamera.quaternion.copy(camera.quaternion);
     bgCamera.fov = camera.fov;
     camera.updateProjectionMatrix();

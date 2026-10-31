@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { ladder, open } from './helpers.ts';
+import { ladder, open, settle, START } from './helpers.ts';
 
 const speed = (page: Page) => page.locator('#speed');
 const clock = (page: Page) => page.locator('#clock');
@@ -291,6 +291,34 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
       expect(near(r, p, 0), `open readout ${fmt(r)} over the panel ${fmt(p)}`).toBe(false);
       await moreCoords.tap();
       await expect(extra.first()).toBeHidden();
+    });
+  });
+}
+
+// Guide step 1 shows the whole of Earth's orbit: wherever the Earth is in the year it is on screen and clear of the
+// camera view, and the orbit's labels, which hang off to the right of their points, stay on screen. The field of view
+// is fixed vertically, so on portrait phones the orbit once ran off both sides, under the camera view.
+for (const [width, height] of [[360, 640], [390, 844], [667, 375], [768, 1024], [1280, 800]]) {
+  test.describe(`${width} x ${height}`, () => {
+    test.use({ viewport: { width, height }, isMobile: width < 1000, hasTouch: width < 1000 });
+    test('guide step 1 fits the orbit beside the camera view', async ({ page }) => {
+      for (let month = 0; month < 12; month += 2) {
+        await open(page, '', new Date(START.getTime() + month * 30.44 * 86400e3));
+        await settle(page);
+        const m = await page.evaluate(() => {
+          const e = document.querySelector('#eyebox')!.getBoundingClientRect();
+          const labels = [...document.querySelectorAll<HTMLElement>('.lbl.l-solar')].filter((l) => +getComputedStyle(l).opacity > 0.03)
+            .map((l) => { const b = l.getBoundingClientRect(); return { text: l.textContent!, left: b.left, top: b.top, right: b.right, bottom: b.bottom }; });
+          return { earth: window.__otf.last()!.earth!, eye: { left: e.left, top: e.top, right: e.right, bottom: e.bottom }, labels };
+        });
+        const [x, y, r] = m.earth, where = `month ${month}: Earth at [${[x, y, r].map(Math.round)}]`;
+        expect.soft(x - r >= 0 && x + r <= width && y - r >= 0 && y + r <= height, `${where} off screen`).toBe(true);
+        const gap = Math.hypot(Math.max(m.eye.left - x, 0, x - m.eye.right), Math.max(m.eye.top - y, 0, y - m.eye.bottom));
+        expect.soft(gap, `${where}, under the camera view ${fmt(m.eye)}`).toBeGreaterThan(r);
+        for (const l of m.labels) {
+          expect.soft(l.left >= 0 && l.right <= width && l.top >= 0 && l.bottom <= height, `month ${month}: label ${l.text} ${fmt(l)} off screen`).toBe(true);
+        }
+      }
     });
   });
 }

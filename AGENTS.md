@@ -34,8 +34,9 @@ system down through the Earth, your site and a telescope to its optics. See
 
 - Browser tests read numbers, not pixels, from `window.__otf`, which
   `src/testHook.ts` fills only in the e2e build: each rendered frame's
-  camera position, direction, up, field of view and the telescope's screen
-  position. It hooks three.js from outside `src/scene/Scene.ts`.
+  camera position, direction, up, field of view, and the telescope's and
+  the Earth's screen positions. It hooks three.js from outside
+  `src/scene/Scene.ts`.
 - Playwright uses the system Chromium; never download browsers. The tests
   fix `Date` (not timers) to 2026-10-16 20:00 UTC so the sky is the same on
   every run.
