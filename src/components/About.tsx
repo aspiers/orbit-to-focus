@@ -20,7 +20,7 @@ export function About() {
           <li>Sky labels can overlap at some dates and viewing angles.</li>
           <li>In desktop windows under about 600 px tall, the zoom buttons can crowd into the camera view.</li>
           <li>Positions use low-precision formulas (Sun and Moon to about a degree) and ignore precession.</li>
-          <li>Tested mainly in Chrome and other Chromium browsers. Safari and Firefox have had less testing.</li>
+          <li>So far tested only in Chrome, and only lightly on phones. Safari and Firefox haven’t been tested yet.</li>
         </ul>
         <h3>Privacy</h3>
         <p>No analytics and no cookies. The app asks your browser where you are, rounds it to a tenth of a degree (about 10 km) and keeps it in the address bar, nowhere else. If you say no, it starts at Greenwich.</p>
