@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeState, encodeState } from '../../src/url.ts';
+import { decodeState, encodeState, shareLink } from '../../src/url.ts';
 import { settings, type Settings } from '../../src/store.ts';
 import { TARGETS } from '../../src/constants.ts';
 
@@ -35,6 +35,16 @@ describe('address bar', () => {
     expect(decodeState('#loc=999,0&scope=evil&speed=abc&layers=').patch).toEqual({ layers: allOff });
     expect(decodeState('#view=nowhere&lesson=0&tab=x&focal=5&preset=99&sensor=1x2x3')).toEqual({ lesson: undefined, view: undefined, patch: {} });
     expect(decodeState('#%%%&&=')).toEqual({ lesson: undefined, view: undefined, patch: {} });
+  });
+
+  it('leaves the place out of a link to share', () => {
+    const s: Settings = { ...defaults, lat: (51.5 * Math.PI) / 180, lon: 0, tab: 'scope' };
+    expect(encodeState(s, 'site')).toContain('loc=');
+    const link = shareLink(s, 'site', 'https://example.org/otf/');
+    expect(link).toBe('https://example.org/otf/#tab=scope&view=site');
+    // Without a place the receiver's app asks for theirs, or stays at Greenwich.
+    expect(decodeState(new URL(link).hash).patch.lat).toBeUndefined();
+    expect(shareLink({ ...s, tab: defaults.tab }, 'solar', 'https://example.org/otf/')).toBe('https://example.org/otf/');
   });
 
   it('opens old #lessonN links', () => {

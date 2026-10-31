@@ -6,6 +6,7 @@ import { fmtRatio } from '../format.ts';
 import { here, locate } from '../geo.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
+import { CopyLink } from './Hud.tsx';
 
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
 
@@ -16,6 +17,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
     <aside id="panel" aria-label="Lessons and controls" ref={ref} className={closed ? 'closed' : ''}>
       <header>
         <h1>Orbit <span>to</span> Focus</h1>
+        <CopyLink id="copyLink" />
         <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
         <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
       </header>

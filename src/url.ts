@@ -1,7 +1,7 @@
 // The address bar mirrors the app's state (not the date or time), so a link reopens the same view.
 // Only values that differ from the defaults are written, as #key=value&... after the page address.
 import { STOPS, TARGETS, TELESCOPES, SENSORS, type StopId } from './constants.ts';
-import { settings, type LayerId, type Settings, type Tab } from './store.ts';
+import { live, settings, ui, type LayerId, type Settings, type Tab } from './store.ts';
 
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
 const DEFAULTS = settings.get();
@@ -28,9 +28,29 @@ const fields = (s: Settings, view: View): Record<string, string> => ({
 });
 const DEFAULT_FIELDS = fields(DEFAULTS, 'solar');
 
-export function encodeState(s: Settings, view: View) {
+export function encodeState(s: Settings, view: View, withLoc = true) {
   const f = fields(s, view);
-  return Object.entries(f).filter(([k, v]) => v !== DEFAULT_FIELDS[k]).map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%2C/g, ',')}`).join('&');
+  return Object.entries(f).filter(([k, v]) => v !== DEFAULT_FIELDS[k] && (withLoc || k !== 'loc')).map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%2C/g, ',')}`).join('&');
+}
+
+// A link to share leaves out loc=, the viewer's place to about 10 km, so whoever opens it gets their own place.
+export function shareLink(s: Settings, view: View, page: string) {
+  const h = encodeState(s, view, false);
+  return h ? `${page}#${h}` : page;
+}
+
+let copiedTimer = 0;
+export async function copyLink() {
+  const link = shareLink(settings.get(), live.get().stop, location.href.replace(/#.*/, ''));
+  try {
+    await navigator.clipboard.writeText(link); // no clipboard outside a secure context, or the browser may refuse
+  } catch {
+    prompt('Copy this link to the view (it leaves out your location):', link);
+    return;
+  }
+  ui.set({ copied: true });
+  clearTimeout(copiedTimer);
+  copiedTimer = window.setTimeout(() => ui.set({ copied: false }), 1500);
 }
 
 // Anything malformed or out of range in the address is ignored rather than trusted.

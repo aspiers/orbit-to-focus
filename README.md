@@ -26,3 +26,5 @@ Append `#lesson11` (any number) to the URL to open a lesson directly.
 
 The app starts at Greenwich Observatory and asks the browser for your location, rounded to a tenth of a degree.
 An address that already carries `loc=` keeps its place and doesn't ask.
+Copy link (key `U`; in the time bar's `⋯` menu on phones) copies the view's address without `loc=`, so a
+shared link doesn't give away where you are and opens at the receiver's own place.

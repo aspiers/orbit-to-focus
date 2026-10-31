@@ -2,11 +2,19 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import { SPEEDS, STOPS, TARGETS } from '../constants.ts';
 import { reverse, stepSpeed, togglePause } from '../time.ts';
 import { live, scopeInfo, settings, ui, useStore } from '../store.ts';
+import { copyLink } from '../url.ts';
 import { Modal } from './Modal.tsx';
 import { compassPoint, fmtDeg, fmtHM, fmtSignedHM } from '../format.ts';
 import type { SceneApi } from '../scene/Scene.ts';
 
 const R2D = 180 / Math.PI;
+
+// In the panel's header on larger screens, and in the time bar's popover on phones: in the bar itself it would cost
+// the bar another row at common laptop widths.
+export function CopyLink({ id }: { id?: string }) {
+  const copied = useStore(ui, (u) => u.copied);
+  return <button type="button" id={id} title="Copy a link to this view, without your location (U)" onClick={copyLink}>{copied ? 'Copied' : 'Copy link'}</button>;
+}
 
 export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const clock = useStore(live, (l) => l.clock), lst = useStore(live, (l) => l.lst), sunAlt = useStore(live, (l) => l.sunAlt);
@@ -14,7 +22,7 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const timeOpen = useStore(ui, (u) => u.dialog === 'time');
   const [more, setMore] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
-  // Phones fold Now, the direction and the two readings into a popover; a tap elsewhere or Escape closes it.
+  // Phones fold Now, the direction, the two readings and Copy link into a popover; a tap elsewhere or Escape closes it.
   useEffect(() => {
     if (!more) return;
     const onDown = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setMore(false); };
@@ -52,8 +60,8 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       </select>
       {direction('desk')}
       {readings('desk')}
-      <button type="button" id="moreBtn" title="More time controls" aria-label="More time controls" aria-expanded={more} aria-controls="moreTime" onClick={() => setMore(!more)}>⋯</button>
-      {more && <div id="moreTime" role="group" aria-label="More time controls">{now('')}{direction('')}{readings('')}</div>}
+      <button type="button" id="moreBtn" title="More controls" aria-label="More controls" aria-expanded={more} aria-controls="moreTime" onClick={() => setMore(!more)}>⋯</button>
+      {more && <div id="moreTime" role="group" aria-label="More controls">{now('')}{direction('')}<CopyLink />{readings('')}</div>}
     </div>
     <TimeDialog scene={scene} />
     </>

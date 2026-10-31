@@ -208,10 +208,12 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   /* The speed takes what the clock and buttons leave; its own arrow would eat a fifth of that. */
   #speed { flex: 1; min-width: 0; font-size: 12px; text-overflow: ellipsis; appearance: none; padding: 4px 14px 4px 4px;
     background: #121828 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%2398a1bb'/%3E%3C/svg%3E") no-repeat right 5px center; }
-  /* Now, the direction and the two readings move into the popover behind the last button. */
+  /* Now, the direction and the two readings move into the popover behind the last button, and so does the header's
+     Copy link, which the row of tabs has no room for. */
   #timebar .desk { display: none; }
   #moreBtn { display: block; flex: none; font-size: 18px; line-height: 1; padding: 0; }
   #moreTime { display: flex; }
+  #copyLink { display: none; }
   /* One row: the name, altitude and azimuth. A tap anywhere on it (the button covers it, and is taller than the row)
      opens the other coordinates on rows below. */
   #readout { flex-wrap: nowrap; align-items: center; box-sizing: border-box; min-height: 32px; padding: 3px 26px 3px 10px; gap: 0 10px; border-radius: 8px; }

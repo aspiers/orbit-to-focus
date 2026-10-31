@@ -265,7 +265,7 @@ for (const [width, height] of [...PHONES, ...LANDSCAPE]) {
       };
       await page.getByRole('button', { name: 'Pause', exact: true }).tap();
       await expect(clock(page)).not.toHaveText('2026-10-16 20:00 UTC');
-      const more = page.getByRole('button', { name: 'More time controls' }), pop = page.getByRole('group', { name: 'More time controls' });
+      const more = page.getByRole('button', { name: 'More controls' }), pop = page.getByRole('group', { name: 'More controls' });
       await expect(more).toHaveAttribute('aria-expanded', 'false');
       await more.tap();
       await expect(pop).toBeVisible();

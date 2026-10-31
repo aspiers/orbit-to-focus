@@ -5,6 +5,7 @@ import { LESSONS, applyLesson } from '../lessons.tsx';
 import { live, settings, ui, useStore, type LayerId } from '../store.ts';
 import type { SceneApi } from '../scene/Scene.ts';
 import { reverse, stepSpeed, togglePause } from '../time.ts';
+import { copyLink } from '../url.ts';
 import { Modal } from './Modal.tsx';
 
 interface Shortcut { keys: string[]; label: string; run?: (scene: SceneApi) => void }
@@ -60,6 +61,7 @@ export const GROUPS: [string, Shortcut[]][] = [
     { keys: ['C'], label: 'Constellation lines', run: toggleLayer('con') },
     { keys: ['A'], label: 'Latitude angles', run: toggleLayer('lat') },
   ]],
+  ['Share', [{ keys: ['U'], label: 'Copy a link to this view, without your location', run: copyLink }]],
   ['Help', [{ keys: ['?'], label: 'Show or hide this list', run: () => ui.set((u) => ({ dialog: u.dialog === 'keys' ? null : 'keys' })) }]],
 ];
 
