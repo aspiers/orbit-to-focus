@@ -92,7 +92,7 @@ export const LESSONS: Lesson[] = [
       <p>You are now standing next to the telescope, facing <NS n="south" s="north" />. The pink <b className="c-mer">meridian</b> runs from due <NS n="north" s="south" /> on the horizon, up through the zenith, and down to due <NS n="south" s="north" />.</p>
       <p>Every star crosses it once a day. At that moment it <b>transits</b>: it is at its highest. The <b>hour angle</b> (HA) is how long ago a star crossed the meridian. <b>Local sidereal time</b> (LST) is the RA that is on the meridian right now, so HA = LST − RA.</p>
       <p className="phone-only">On a phone, tap the box that shows the target’s name to see its hour angle, and tap ⋯ in the time bar to see the sidereal time.</p>
-      <p>Drag to look around; scroll to zoom.</p>
+      <p>Drag to look around; scroll or pinch to zoom.</p>
     </>,
   },
   {
