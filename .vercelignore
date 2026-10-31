@@ -9,6 +9,7 @@
 !/tsconfig.json
 !/vite.config.ts
 !/vercel.json
+!/public
 !/src
 !/tools
 /tools/*
