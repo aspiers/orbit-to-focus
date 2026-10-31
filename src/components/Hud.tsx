@@ -10,10 +10,17 @@ import type { SceneApi } from '../scene/Scene.ts';
 const R2D = 180 / Math.PI;
 
 // In the panel's header on larger screens, and in the time bar's popover on phones: in the bar itself it would cost
-// the bar another row at common laptop widths.
-export function CopyLink({ id }: { id?: string }) {
+// the bar another row at common laptop widths. The header's copy is an icon, so the title keeps to one line.
+export function CopyLink({ id, icon }: { id?: string; icon?: boolean }) {
   const copied = useStore(ui, (u) => u.copied);
-  return <button type="button" id={id} title="Copy a link to this view, without your location (U)" onClick={copyLink}>{copied ? 'Copied' : 'Copy link'}</button>;
+  const label = copied ? 'Copied' : 'Copy link';
+  return <button type="button" id={id} title="Copy a link to this view, without your location (U)" aria-label={icon ? label : undefined} onClick={copyLink}>
+    {!icon ? label : copied ? '✓' : (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+        <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" />
+      </svg>
+    )}
+  </button>;
 }
 
 export function TimeBar({ scene }: { scene: SceneApi | null }) {

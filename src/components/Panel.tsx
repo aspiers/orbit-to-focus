@@ -17,7 +17,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
     <aside id="panel" aria-label="Lessons and controls" ref={ref} className={closed ? 'closed' : ''}>
       <header>
         <h1>Orbit <span>to</span> Focus</h1>
-        <CopyLink id="copyLink" />
+        <CopyLink id="copyLink" icon />
         <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
         <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
       </header>
