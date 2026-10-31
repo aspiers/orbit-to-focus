@@ -123,6 +123,12 @@ dialog input { background: #1a2136; border: 1px solid #2d3756; border-radius: 6p
 .about ul { padding-left: 20px; }
 .about h3 { margin-top: 14px; }
 .about a { color: var(--accent); }
+.share { max-width: 46ch; }
+.share p { margin: 0 0 12px; color: #d3d7e4; }
+.share-sites { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.share-sites > * { min-height: 40px; }
+.share-sites a { display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: #1a2136; border: 1px solid #2d3756; border-radius: 6px; padding: 6px 12px; color: inherit; text-decoration: none; }
+.share-sites a:hover { border-color: var(--accent); }
 kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margin-right: 4px; border: 1px solid #2d3756; border-bottom-width: 2px; border-radius: 4px; background: #1a2136; }
 .kv { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .kv b { font: 500 12px var(--mono); color: var(--fg); display: inline-block; text-align: right; }
@@ -224,7 +230,7 @@ kbd { display: inline-block; font: 500 12px var(--mono); padding: 1px 6px; margi
   #timebar .desk { display: none; }
   #moreBtn { display: block; flex: none; font-size: 18px; line-height: 1; padding: 0; }
   #moreTime { display: flex; }
-  #copyLink { display: none; }
+  #copyLink, #shareBtn { display: none; }
   /* One row: the name, altitude and azimuth. A tap anywhere on it (the button covers it, and is taller than the row)
      opens the other coordinates on rows below. */
   #readout { flex-wrap: nowrap; align-items: center; box-sizing: border-box; min-height: 32px; padding: 3px 26px 3px 10px; gap: 0 10px; border-radius: 8px; }

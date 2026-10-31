@@ -8,6 +8,7 @@ import { Panel } from './Panel.tsx';
 import { EyeBox, Ladder, Readout, TimeBar } from './Hud.tsx';
 import { Shortcuts } from './Shortcuts.tsx';
 import { About } from './About.tsx';
+import { Share } from './Share.tsx';
 
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null), labels = useRef<HTMLDivElement>(null), eyeview = useRef<HTMLCanvasElement>(null);
@@ -73,6 +74,7 @@ export function App() {
       <TimeBar scene={scene} />
       <Shortcuts scene={scene} />
       <About />
+      <Share />
       {/* Before the readout and the ladder, which are anchored to it. */}
       <EyeBox ref={eyeview} />
       <Readout />

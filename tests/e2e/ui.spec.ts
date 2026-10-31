@@ -333,6 +333,46 @@ for (const [width, height] of [[1280, 800], [390, 844], [667, 375]]) {
   });
 }
 
+// Share sends the view's address, without the place, to each site's own share page. Phones reach it under ⋯.
+for (const [width, height] of [[1280, 800], [390, 844], [667, 375]]) {
+  const phone = width < 1000;
+  test.describe(`${width} x ${height}`, () => {
+    test.use({ viewport: { width, height }, isMobile: phone, hasTouch: phone });
+    test('Share opens links to the view without its place', async ({ page }) => {
+      await open(page, '#loc=48.9,2.4&tab=sky');
+      await expect(page).toHaveURL(/loc=48.9,2.4/);
+      const dialog = page.getByRole('dialog', { name: 'Share' });
+      await page.keyboard.press('S');
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      if (phone) await page.getByRole('button', { name: 'More controls' }).click();
+      await page.getByRole('button', { name: 'Share', exact: true }).click();
+      await expect(dialog).toBeInViewport({ ratio: 1 });
+      const home = await page.evaluate(() => location.href.replace(/#.*/, '#'));
+      const sites = [
+        ['X', 'https://x.com/intent/tweet?'], ['Bluesky', 'https://bsky.app/intent/compose?'],
+        ['Facebook', 'https://www.facebook.com/sharer/sharer.php?'], ['Reddit', 'https://www.reddit.com/submit?'],
+        ['LinkedIn', 'https://www.linkedin.com/sharing/share-offsite/?'], ['WhatsApp', 'https://wa.me/?'], ['Email', 'mailto:?'],
+      ];
+      for (const [name, start] of sites) {
+        const link = dialog.getByRole('link', { name, exact: true });
+        await expect(link, name).toBeInViewport({ ratio: 1 });
+        const href = (await link.getAttribute('href'))!;
+        expect(href.startsWith(start), `${name}: ${href}`).toBe(true);
+        const shared = decodeURIComponent(href);
+        expect(shared, name).toContain(home);
+        expect(shared, name).toMatch(/[#&]tab=sky/);
+        expect(shared, name).not.toContain('loc=');
+        if (name !== 'Email') await expect(link, name).toHaveAttribute('rel', 'noopener noreferrer');
+      }
+      await expect(dialog.getByRole('button', { name: 'Copy link' })).toBeInViewport({ ratio: 1 });
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+    });
+  });
+}
+
 // Guide step 1 shows the whole of Earth's orbit: wherever the Earth is in the year it is on screen and clear of the
 // camera view, and the orbit's labels, which hang off to the right of their points, stay on screen. The field of view
 // is fixed vertically, so on portrait phones the orbit once ran off both sides, under the camera view.

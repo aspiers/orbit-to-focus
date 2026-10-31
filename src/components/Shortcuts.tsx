@@ -61,7 +61,10 @@ export const GROUPS: [string, Shortcut[]][] = [
     { keys: ['C'], label: 'Constellation lines', run: toggleLayer('con') },
     { keys: ['A'], label: 'Latitude angles', run: toggleLayer('lat') },
   ]],
-  ['Share', [{ keys: ['U'], label: 'Copy a link to this view, without your location', run: copyLink }]],
+  ['Share', [
+    { keys: ['U'], label: 'Copy a link to this view, without your location', run: copyLink },
+    { keys: ['S'], label: 'Share this view on social sites, without your location', run: () => ui.set({ dialog: 'share' }) },
+  ]],
   ['Help', [
     { keys: ['?'], label: 'Show or hide this list', run: () => ui.set((u) => ({ dialog: u.dialog === 'keys' ? null : 'keys' })) },
     { keys: ['I'], label: 'About this alpha, and how to report a mistake', run: () => ui.set({ dialog: 'about' }) },

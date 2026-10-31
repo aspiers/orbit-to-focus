@@ -13,7 +13,7 @@ export function About() {
         <p><b>This is an alpha.</b> Some of it will be wrong or confusing, and I’d like to hear about it.</p>
         <h3>Report a mistake</h3>
         <p><a href={`${REPO}/issues/new/choose`} target="_blank" rel="noreferrer">Open an issue on GitHub</a> (you need a GitHub account).</p>
-        <p>Copy link copies the address of the view you’re looking at, without your location, so the report can show exactly what you saw. It’s the link icon in the panel’s header, or under ⋯ in the time bar on phones. Its shortcut is <kbd>U</kbd>.</p>
+        <p>Copy link copies the address of the view you’re looking at, without your location, so the report can show exactly what you saw. It’s the link icon in the panel’s header, or under ⋯ in the time bar on phones. Its shortcut is <kbd>U</kbd>. The Share icon beside it (<kbd>S</kbd>) posts the same link to X, Bluesky and other sites.</p>
         <h3>Known limitations</h3>
         <ul>
           <li>The telescope is drawn about 60× larger than true scale against the Earth, and larger still as you zoom out, so you can see it.</li>

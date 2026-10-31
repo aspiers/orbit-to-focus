@@ -4,6 +4,7 @@ import { reverse, stepSpeed, togglePause } from '../time.ts';
 import { live, scopeInfo, settings, ui, useStore } from '../store.ts';
 import { copyLink } from '../url.ts';
 import { Modal } from './Modal.tsx';
+import { ShareButton } from './Share.tsx';
 import { compassPoint, fmtDeg, fmtHM, fmtSignedHM } from '../format.ts';
 import type { SceneApi } from '../scene/Scene.ts';
 
@@ -29,7 +30,7 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
   const timeOpen = useStore(ui, (u) => u.dialog === 'time');
   const [more, setMore] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
-  // Phones fold Now, the direction, the two readings and Copy link into a popover; a tap elsewhere or Escape closes it.
+  // Phones fold Now, the direction, the two readings, Copy link and Share into a popover; a tap elsewhere or Escape closes it.
   useEffect(() => {
     if (!more) return;
     const onDown = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setMore(false); };
@@ -68,7 +69,7 @@ export function TimeBar({ scene }: { scene: SceneApi | null }) {
       {direction('desk')}
       {readings('desk')}
       <button type="button" id="moreBtn" title="More controls" aria-label="More controls" aria-expanded={more} aria-controls="moreTime" onClick={() => setMore(!more)}>⋯</button>
-      {more && <div id="moreTime" role="group" aria-label="More controls">{now('')}{direction('')}<CopyLink />{readings('')}</div>}
+      {more && <div id="moreTime" role="group" aria-label="More controls">{now('')}{direction('')}<CopyLink /><ShareButton />{readings('')}</div>}
     </div>
     <TimeDialog scene={scene} />
     </>

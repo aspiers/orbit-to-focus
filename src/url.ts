@@ -39,9 +39,11 @@ export function shareLink(s: Settings, view: View, page: string) {
   return h ? `${page}#${h}` : page;
 }
 
+export const viewLink = () => shareLink(settings.get(), live.get().stop, location.href.replace(/#.*/, ''));
+
 let copiedTimer = 0;
 export async function copyLink() {
-  const link = shareLink(settings.get(), live.get().stop, location.href.replace(/#.*/, ''));
+  const link = viewLink();
   try {
     await navigator.clipboard.writeText(link); // no clipboard outside a secure context, or the browser may refuse
   } catch {

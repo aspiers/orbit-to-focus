@@ -64,6 +64,6 @@ export const live = createStore<Live>({
 });
 
 // Which dialog is open, if any, and whether a link to the view was just copied.
-export const ui = createStore<{ dialog: 'time' | 'keys' | 'about' | null; copied: boolean }>({ dialog: null, copied: false });
+export const ui = createStore<{ dialog: 'time' | 'keys' | 'about' | 'share' | null; copied: boolean }>({ dialog: null, copied: false });
 
 export const scopeInfo = createStore<ScopeInfo>({ name: '', aperture: 0, focalLength: 0, nominalFocal: 0 });

@@ -7,6 +7,7 @@ import { here, locate } from '../geo.ts';
 import { LESSONS, applyLesson } from '../lessons.tsx';
 import type { SceneApi } from '../scene/Scene.ts';
 import { CopyLink } from './Hud.tsx';
+import { ShareButton } from './Share.tsx';
 
 const D2R = Math.PI / 180, R2D = 180 / Math.PI;
 
@@ -20,6 +21,7 @@ export const Panel = forwardRef<HTMLElement, { scene: SceneApi | null }>(functio
         {/* Below the title on larger screens; on phones it shortens to "Alpha" in the row of tabs. */}
         <button type="button" id="about" title="About this alpha, and how to report a mistake (I)" onClick={() => ui.set({ dialog: 'about' })}>Alpha<span className="long">: feedback welcome</span></button>
         <CopyLink id="copyLink" icon />
+        <ShareButton id="shareBtn" icon />
         <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => ui.set({ dialog: 'keys' })}>?</button>
         <button type="button" onClick={() => setClosed(!closed)} aria-expanded={!closed}>{closed ? 'Show' : 'Hide'}</button>
       </header>
