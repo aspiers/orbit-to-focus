@@ -86,7 +86,16 @@ This repository opts into the Beads **team-maintainer** profile for issue
 management and commits. Unless a current user or orchestrator instruction
 says otherwise, agents may manage issues and make atomic commits as work
 progresses. They must not push Git branches or sync or push Dolt state
-unless explicitly requested.
+unless explicitly requested, with one standing exception below.
+
+## Releases
+
+The source is public at <https://github.com/aspiers/orbit-to-focus> (remote
+`github`) and Vercel deploys each push to `main` to
+<https://orbit-to-focus.vercel.app>. The maintainer has given standing
+permission to push `main` to `github` once work is merged, finished and
+`npm test` passes on `main`; that push is the release. Push nothing else:
+no other branches, tags or `refs/replace/*`. Always name the remote.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker
