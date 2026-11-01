@@ -617,7 +617,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   label('Ecliptic', 'l-ecl', (v) => earthSys.localToWorld(v.copy(sky.sunDirW).applyAxisAngle(V(0, 1, 0), 1.2).multiplyScalar(SHELL_R)), () => (lay('ecl') ? W8.earth : 0));
   label('Sun’s direction', 'l-sun', (v) => shellSun.getWorldPosition(v), () => W8.earth * 0.8);
   // While the meridian slice is shown, at the end away from the pole, so it misses the mount's polar axis label.
-  label('Earth’s axis', 'l-axis', (v) => tilt3.localToWorld(v.set(0, (lay('lat') && S().lat >= 0 ? -1.9 : 1.9) * axisLine.scale.y, 0)), () => Math.max(W8.earth, W8.sol));
+  label('Earth’s axis', 'l-axis', (v) => tilt3.localToWorld(v.set(0, (lay('lat') && S().lat >= 0 ? -1.9 : 1.9) * axisLine.scale.y, 0)), () => (axisLine.visible ? Math.max(W8.earth, W8.sol) : 0));
   label('You', 'l-brass', (v) => sitePin.getWorldPosition(v), () => Math.max(W8.earth, W8.moon) * 0.95);
   // Hidden with the horizon disc while the meridian slice draws its own horizon.
   label('Your horizon', 'l-hor', (v) => siteBig.localToWorld(v.set(1.1, 0, 1.1)), () => (lay('hor') && !lay('lat') ? W8.earth : 0));
@@ -892,7 +892,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     setAlpha(siteBig, Ly.hor && !Ly.lat ? w.earth * smooth(w.L, 0.5, 0.9) : 0); // gone before you reach the surface
     setAlpha(sitePin, Math.max(w.earth, w.moon));
     if (moonOrbit) setAlpha(moonOrbit, Ly.moonOrbit ? Math.max(w.moon, w.sol * 0.8) : 0);
-    setAlpha(axisLine, Math.max(w.earth, w.sol, w.moon) * 0.9);
+    // Guide step 1 is about the orbit alone; step 2 introduces the axis.
+    const axisAlpha = s.tab === 'guide' && s.lesson === 0 ? 0 : Math.max(w.earth, w.sol, w.moon);
+    setAlpha(axisLine, axisAlpha * 0.9);
     axisLine.scale.y = 1 + 2.5 * w.sol; // long enough to see its fixed direction around the orbit
     setAlpha(meridianShell, Ly.mer ? w.earth : 0);
     setAlpha(latDiagram, Ly.lat ? w.earth : 0);

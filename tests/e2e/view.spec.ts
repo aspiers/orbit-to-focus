@@ -162,4 +162,28 @@ test.describe('the 3D view', () => {
     expect(Math.max(...fov) - Math.min(...fov)).toBeGreaterThan(1); // the test means something only if it zooms
     expect(Math.max(...fov.slice(1).map((f, i) => Math.abs(f - fov[i])))).toBeLessThan(0.5);
   });
+  // Step 1 is about the orbit alone, so Earth's axis waits for step 2. The axis's label shows only while the
+  // line is drawn, so its opacity stands in for the line's.
+  test('Earth\'s axis first appears in guide step 2', async ({ page }) => {
+    const axis = () => page.locator('.lbl.l-axis').evaluate((l) => +getComputedStyle(l).opacity);
+    const step = async (n: number, shown: boolean, why: string) => {
+      await expect(page.locator('#panel .step')).toHaveText(new RegExp(`^${n} of`));
+      if (shown) await expect.poll(axis, why).toBeGreaterThan(0.03);
+      else { await settle(page); expect(await axis(), why).toBe(0); }
+    };
+    await open(page);
+    await step(1, false, 'on opening step 1');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await step(2, true, 'on step 2');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await step(1, false, 'back on step 1');
+    await page.getByRole('tab', { name: 'Telescope' }).click();
+    await expect.poll(axis, 'after leaving the guide').toBeGreaterThan(0.03);
+    await page.getByRole('tab', { name: 'Guide' }).click();
+    await step(1, false, 'back in the guide on step 1');
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
+    await page.keyboard.press('PageDown');
+    await step(4, true, 'paging on from step 1 to step 4');
+  });
 });
