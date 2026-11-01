@@ -22,11 +22,11 @@ system down through the Earth, your site and a telescope to its optics. See
   address-bar encoding, time controls and guide data. Takes about a second;
   run it after any change to `src/astro.ts`, `src/optics.ts`, `src/url.ts`,
   `src/time.ts` or `src/lessons.tsx`.
-- `npm run test:e2e`: builds `dist-e2e/` with `vite build --mode e2e`, serves
-  it on port 5182 and runs the Playwright tests (`tests/e2e/`) in
-  `/usr/bin/chromium` on the GPU. Takes about a minute. To run one test, use
-  `sh tools/capped.sh npx playwright test -g '<name>'` once `dist-e2e/`
-  exists; `npm run build` leaves it alone.
+- `npm run test:e2e`: builds `dist-e2e/` with `vite build --mode e2e`, then
+  `tools/e2e.sh` serves it on port 5182 and runs the Playwright tests
+  (`tests/e2e/`) in `/usr/bin/chromium` on the GPU. Takes about a minute. To
+  run one test, use `sh tools/e2e.sh -g '<name>'` once `dist-e2e/` exists;
+  `npm run build` leaves it alone.
 - `npm run build`: typecheck, then a single-file build in `dist/`
   (`dist/orbit-to-focus.html` is the publishable artifact).
 
@@ -36,12 +36,14 @@ Work on this project must take no more than half the machine's CPU or GPU.
 
 - `npm test`, `npm run test:unit` and `npm run test:e2e` run under
   `tools/capped.sh`, a systemd user scope capped at half the cores. Run
-  other heavy commands through it too, such as a single Playwright test or a
-  `vite build`.
-- Run one browser on the app at a time, and close any browser or dev server
-  you start as soon as you are done: an open page keeps rendering the 3D
-  scene. Never leave a headless browser on the app, since without the GPU it
-  renders in software on the CPU.
+  other heavy commands through it too, such as a `vite build`.
+- Run one browser on the app at a time across all checkouts. `tools/e2e.sh`
+  does this for Playwright: a run started while another checkout's run holds
+  the lock waits for it, for up to 15 minutes, so start yours directly
+  rather than writing a wait loop. Close any browser or dev server you start
+  as soon as you are done: an open page keeps rendering the 3D scene. Never
+  leave a headless browser on the app, since without the GPU it renders in
+  software on the CPU.
 
 ## Tests
 
