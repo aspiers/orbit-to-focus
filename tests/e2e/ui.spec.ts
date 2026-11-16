@@ -50,6 +50,16 @@ test.describe('controls', () => {
     await expect(page.locator('#ladder button[aria-current=true]')).toContainText('Your site');
   });
 
+  // The Moon creeps at 10 min/s; its zoom band caps the speed at 1 day/s, so 6 hours/s survives the fly-in.
+  test('guide step 3 runs the Moon at 6 hours per second', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await expect(page.locator('#panel .step')).toHaveText(/^3 of/);
+    await page.waitForTimeout(4000); // longer than the longest fly-in; the view never settles while the Moon moves
+    await expect(speed(page)).toHaveValue('21600');
+  });
+
   test('keyboard shortcuts change the time, layers and place', async ({ page }) => {
     await open(page);
     await speed(page).selectOption({ label: '10 min / s' });

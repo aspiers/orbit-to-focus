@@ -26,7 +26,7 @@ interface Lesson {
   corrected?: boolean;
 }
 
-const MIN10 = 600, WEEK = 604800;
+const MIN10 = 600, HOUR6 = 21600, WEEK = 604800;
 // Vega never rises south of about 51° S. These two bright stars are 8 h of RA apart, so from mid-southern
 // latitudes one of them is well up at any hour and season (from Sydney, above 16° every evening).
 const SOUTH_STARS = ['Canopus', 'Alpha Centauri'];
@@ -48,11 +48,11 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'The Moon', view: { stop: 'moon' }, speed: MIN10, layers: { moonOrbit: true, eq: false },
+    title: 'The Moon', view: { stop: 'moon' }, speed: HOUR6, layers: { moonOrbit: true, eq: false },
     body: <>
       <p>The <b className="c-moon">Moon</b> orbits Earth every 27.3 days, in the same direction that Earth spins. Its orbit is tilted about 5° to the ecliptic, which is why we don’t get an eclipse every month.</p>
       <p>The Moon turns exactly once per orbit, so the same face (with its dark patches) always points at Earth. The Sun always lights half of it; the <b>phase</b> is how much of that lit half faces us.</p>
-      <p>At 10 minutes per second the Moon creeps; set the speed to 1 day per second in the top bar (or press <kbd>]</kbd> three times) to watch a whole orbit in under half a minute.</p>
+      <p>At 6 hours per second a whole orbit takes almost two minutes; set the speed to 1 day per second in the top bar (or press <kbd>]</kbd>) to watch one in under half a minute.</p>
     </>,
   },
   {
