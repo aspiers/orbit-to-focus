@@ -162,6 +162,26 @@ test.describe('the 3D view', () => {
     expect(Math.max(...fov) - Math.min(...fov)).toBeGreaterThan(1); // the test means something only if it zooms
     expect(Math.max(...fov.slice(1).map((f, i) => Math.abs(f - fov[i])))).toBeLessThan(0.5);
   });
+  // The solar system view draws the Earth and Moon 10 times too big. Shrinking them back faster than the camera
+  // closed in made the Earth swell, shrink, then swell again on the way to the Moon.
+  test('guide 2 to 3 zooms into the Earth without a bounce, and back out again', async ({ page }) => {
+    const radii = async (button: string, step: number) => {
+      const from = (await last(page)).frame;
+      await page.getByRole('button', { name: button, exact: true }).click();
+      await expect(page.locator('#panel .step')).toHaveText(new RegExp(`^${step} of`));
+      await page.waitForTimeout(3000);
+      return (await since(page, from)).flatMap((f) => (f.earth ? [f.earth[2]] : []));
+    };
+    // The largest drop below the largest radius seen so far, in pixels.
+    const shrink = (r: number[]) => Math.max(...r.map((v, i) => Math.max(...r.slice(0, i + 1)) - v));
+    await open(page, '#lesson2');
+    await page.waitForTimeout(5000);
+    const zoomIn = await radii('Next', 3);
+    expect(zoomIn.at(-1)! / zoomIn[0]).toBeGreaterThan(1.5); // the test means something only if it zooms
+    expect(shrink(zoomIn)).toBeLessThan(0.1);
+    const zoomOut = (await radii('Back', 2)).map((v) => -v);
+    expect(shrink(zoomOut)).toBeLessThan(0.1);
+  });
   // Step 1 is about the orbit alone, so Earth's axis waits for step 2. The axis's label shows only while the
   // line is drawn, so its opacity stands in for the line's.
   test('Earth\'s axis first appears in guide step 2', async ({ page }) => {

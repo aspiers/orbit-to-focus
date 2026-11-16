@@ -807,7 +807,11 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     // Bodies
     const earthPos = sky.sunDirW.clone().multiplyScalar(-ORBIT_R);
     earthSys.position.copy(earthPos);
-    earthSys.scale.setScalar(s.mode === 'eye' ? 1 : 1 + 9 * smooth(w.L, 1.8, 2.7));
+    // The solar system view draws the Earth and Moon 10 times too big. They shrink back between the Moon's stop and
+    // the solar system's, in log space and half linearly, so never faster than the camera closes in: any steeper
+    // and the Earth swells, shrinks, then swells again on the way in.
+    const big = (smooth(w.L, 1.6, SOLAR_L) + clamp((w.L - 1.6) / (SOLAR_L - 1.6), 0, 1)) / 2;
+    earthSys.scale.setScalar(s.mode === 'eye' ? 1 : 10 ** big);
     spin.rotation.y = sky.gmst;
     moon.position.copy(sky.moonDirW).multiplyScalar(MOON_ORBIT_R);
     moon.lookAt(earthPos);
