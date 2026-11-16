@@ -610,7 +610,7 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
   solarLbl('Earth', (v) => v.copy(earthSys.position).add(V(0, 14, 0)));
   solarLbl('Ecliptic plane (Earth’s orbit)', (v) => v.set(ORBIT_R * 0.72, 0, ORBIT_R * 0.72));
   for (const m of seasonMarks) label(m.name, 'l-solar dim', (v) => v.copy(m.p).add(V(0, 6, 0)), () => W8.sol);
-  label('Moon', 'l-moon', (v) => moon.getWorldPosition(v), () => Math.max(W8.moon, W8.earth * 0.8));
+  label('Moon', 'l-moon', (v) => moon.getWorldPosition(v), () => (moon.visible ? Math.max(W8.moon, W8.earth * 0.8) : 0));
   label('North celestial pole', 'l-eq', (v) => tilt3.localToWorld(v.set(0, SHELL_R * 1.05, 0)), () => (lay('eq') ? W8.earth : 0));
   label('South celestial pole', 'l-eq', (v) => tilt3.localToWorld(v.set(0, -SHELL_R * 1.05, 0)), () => (lay('eq') ? W8.earth : 0));
   label('Celestial equator', 'l-eq', (v) => tilt3.localToWorld(v.set(SHELL_R * 0.72, 0, SHELL_R * 0.72)), () => (lay('eq') ? W8.earth : 0));
@@ -921,7 +921,9 @@ export function createScene(canvas: HTMLCanvasElement, labelLayer: HTMLElement, 
     (pointer.material as THREE.LineBasicMaterial).opacity = 0.55 * w.scope * (1 - w.opt);
     (polarRod.material as THREE.LineBasicMaterial).opacity = s.mountMode === 'eq' ? 0.9 * w.scope * (1 - w.opt) : 0;
     // Near the ground the sky shows the Sun and Moon at their true directions; hide the scale models.
-    sun.visible = sunGlow.visible = moon.visible = w.site < 0.5;
+    sun.visible = sunGlow.visible = w.site < 0.5;
+    // Guide steps 1 and 2 are about Earth's orbit and axis; the Moon waits for step 3.
+    moon.visible = w.site < 0.5 && !(s.tab === 'guide' && s.lesson <= 1);
 
     // The target in the tube's frame, for the panel's off-axis readout.
     model.group.getWorldQuaternion(qInv).invert();

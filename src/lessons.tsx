@@ -41,7 +41,7 @@ export const LESSONS: Lesson[] = [
     </>,
   },
   {
-    title: 'A tilted axis that keeps its direction', view: { stop: 'solar', yaw: 12, pitch: 12 }, speed: WEEK, layers: { ecl: true },
+    title: 'A tilted axis that keeps its direction', view: { stop: 'solar', yaw: 12, pitch: 12 }, speed: WEEK, layers: { ecl: true, moonOrbit: false },
     body: <>
       <p>Earth spins around an <b>axis</b> tilted 23.4° from upright, relative to the ecliptic. The axis keeps pointing the same way in space all year, at a spot very close to Polaris.</p>
       <p>Around the <b>June solstice</b> the north end leans toward the Sun: northern summer. Six months later it leans away. At the two <b>equinoxes</b> it leans sideways and day and night are equal everywhere.</p>

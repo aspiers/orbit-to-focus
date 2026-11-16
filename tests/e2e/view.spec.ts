@@ -206,4 +206,32 @@ test.describe('the 3D view', () => {
     await page.keyboard.press('PageDown');
     await step(4, true, 'paging on from step 1 to step 4');
   });
+  // Steps 1 and 2 are about Earth's orbit and axis, so the Moon waits for step 3. As above, the Moon's label stands
+  // in for the Moon. Its orbit is a layer, which the address lists while it is on.
+  test('guide steps 1 and 2 show neither the Moon nor its orbit', async ({ page }) => {
+    const moon = () => page.locator('.lbl.l-moon').first().evaluate((l) => +getComputedStyle(l).opacity);
+    const orbit = () => page.evaluate(() => new URLSearchParams(location.hash.slice(1)).get('layers')!.split(',').includes('moonOrbit'));
+    const step = async (n: number, shown: boolean, why: string) => {
+      await expect(page.locator('#panel .step')).toHaveText(new RegExp(`^${n} of`));
+      if (shown) await expect.poll(moon, why).toBeGreaterThan(0.03);
+      else { await settle(page); expect(await moon(), why).toBe(0); }
+      expect(await orbit(), why).toBe(shown);
+    };
+    await open(page);
+    await step(1, false, 'on opening step 1');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await step(2, false, 'on step 2');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await step(3, true, 'on step 3');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await step(2, false, 'back from step 3');
+    // Opening a link doesn't rewrite the address, so the orbit's checkbox shows its layer instead.
+    await open(page, '#lesson=2');
+    await expect(page.locator('#panel .step')).toHaveText(/^2 of/);
+    await settle(page);
+    expect(await moon(), 'opening step 2 from a link').toBe(0);
+    await page.getByRole('tab', { name: 'Sky & place' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Moon’s orbit' }), 'opening step 2 from a link').not.toBeChecked();
+    await expect.poll(moon, 'after leaving the guide').toBeGreaterThan(0.03);
+  });
 });
